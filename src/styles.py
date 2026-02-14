@@ -3,9 +3,11 @@ import streamlit as st
 def inject_styles():
     st.markdown("""
     <style>
+    /* Mobile-first responsive design */
+    
     /* Main container styling */
     .main {
-        padding-top: 2rem;
+        padding-top: 1rem;
     }
     
     /* Header styling */
@@ -14,12 +16,14 @@ def inject_styles():
         font-weight: 700;
         letter-spacing: -0.5px;
         margin-bottom: 0.5rem;
+        font-size: clamp(1.5rem, 5vw, 2.5rem);
     }
     
     h3 {
         color: #64748b;
         font-weight: 400;
         margin-bottom: 2rem;
+        font-size: clamp(1rem, 3vw, 1.25rem);
     }
     
     /* Sidebar styling */
@@ -96,6 +100,7 @@ def inject_styles():
         font-weight: 600;
         transition: all 0.2s ease;
         margin-top: 1.5rem;
+        width: 100%;
     }
     
     .stDownloadButton button:hover {
@@ -110,6 +115,7 @@ def inject_styles():
         overflow: hidden;
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
         border: 1px solid #e2e8f0;
+        width: 100%;
     }
     
     .ag-header {
@@ -117,6 +123,7 @@ def inject_styles():
         border-bottom: 2px solid #cbd5e1;
         font-weight: 600;
         color: #1e293b;
+        font-size: clamp(0.75rem, 2vw, 0.95rem);
     }
     
     .ag-header-cell-label {
@@ -133,7 +140,7 @@ def inject_styles():
     
     .ag-cell {
         line-height: 45px;
-        font-size: 0.95rem;
+        font-size: clamp(0.75rem, 2vw, 0.95rem);
     }
     
     /* Pinned columns */
@@ -164,8 +171,10 @@ def inject_styles():
     
     /* Remove default Streamlit padding */
     .block-container {
-        padding-top: 3rem;
-        padding-bottom: 3rem;
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
     
     /* Custom animations */
@@ -182,6 +191,91 @@ def inject_styles():
     
     .main > div {
         animation: fadeIn 0.5s ease;
+    }
+    
+    /* Metrics styling for mobile */
+    [data-testid="stMetricValue"] {
+        font-size: clamp(1.25rem, 4vw, 1.875rem);
+    }
+    
+    [data-testid="stMetricLabel"] {
+        font-size: clamp(0.75rem, 2vw, 0.875rem);
+    }
+    
+    /* Mobile-specific adjustments */
+    @media (max-width: 768px) {
+        .block-container {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        h3 {
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+        
+        hr {
+            margin: 1rem 0;
+        }
+        
+        /* Reduce metric spacing on mobile */
+        [data-testid="stMetric"] {
+            padding: 0.5rem;
+        }
+        
+        /* Make AG Grid scrollable horizontally on mobile */
+        .ag-theme-streamlit {
+            font-size: 0.75rem;
+        }
+        
+        .ag-cell {
+            line-height: 40px;
+        }
+        
+        .ag-header {
+            font-size: 0.75rem;
+        }
+        
+        /* Adjust download button */
+        .stDownloadButton button {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        /* Color legend cards */
+        div[style*="padding: 10px"] {
+            padding: 8px !important;
+            font-size: 0.8rem !important;
+        }
+    }
+    
+    /* Tablet adjustments */
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .block-container {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+        
+        h1 {
+            font-size: 2rem;
+        }
+        
+        h3 {
+            font-size: 1.1rem;
+        }
+    }
+    
+    /* Ensure grid is responsive */
+    .stDataFrame, [data-testid="stDataFrame"] {
+        width: 100%;
+        overflow-x: auto;
     }
     </style>
     """, unsafe_allow_html=True)

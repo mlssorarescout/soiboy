@@ -41,90 +41,47 @@ def load_and_prepare_data(file_path):
 
 def calculate_gameweeks(df):
     """
-    Calculate gameweek numbers based on match dates.
+    Process gameweek numbers from the CSV file.
     
-    Uses the 'Game Week' column from CSV to determine the starting gameweek,
-    then applies Friday-to-Thursday week definition with 4-day and 3-day periods
-    alternating to align with typical match schedules.
+    Uses the existing 'Gameweek' column from the CSV, normalizing it by
+    finding the minimum gameweek value and adjusting all values relative to it,
+    so gameweeks start from 1.
     
     Args:
-        df: DataFrame with 'Date' column and 'Game Week' column from CSV
+        df: DataFrame with 'Gameweek' column from CSV
         
     Returns:
-        DataFrame with 'Gameweek' column added
+        DataFrame with normalized 'Gameweek' column (starting from 1)
     """
-    if df.empty or df["Date"].isna().all():
+    if df.empty:
         df["Gameweek"] = pd.NA
         return df
-
-    # Check if Game Week column exists and find the minimum value
-    if "Game Week" not in df.columns:
-        st.error("❌ 'Game Week' column not found in the CSV file.")
+    
+    # Check if Gameweek column exists in the CSV
+    if "Gameweek" not in df.columns:
+        st.error("❌ 'Gameweek' column not found in the CSV file.")
         st.stop()
     
-    # Convert Game Week to numeric and find minimum (ignoring NaN values)
-    game_week_values = pd.to_numeric(df["Game Week"], errors="coerce")
-    valid_gameweeks = game_week_values.dropna()
+    # Convert Gameweek to numeric, handling any non-numeric values
+    df["Gameweek"] = pd.to_numeric(df["Gameweek"], errors="coerce")
     
-    if valid_gameweeks.empty:
-        st.error("❌ No valid Game Week values found in the CSV file.")
+    # Remove rows with invalid gameweek values
+    if df["Gameweek"].isna().any():
+        invalid_count = df["Gameweek"].isna().sum()
+        st.warning(f"⚠️ Removed {invalid_count} rows with invalid Gameweek values.")
+        df = df[df["Gameweek"].notna()].copy()
+    
+    if df.empty:
+        st.error("❌ No valid gameweek data found in the file.")
         st.stop()
     
-    min_game_week = valid_gameweeks.min()
+    # Find the minimum gameweek value in the file
+    min_gameweek = df["Gameweek"].min()
     
-    # Calculate the starting gameweek (min - 604)
-    starting_gameweek = int(min_game_week - 604)
-
-    # Find the first Friday at 3 PM before the earliest match
-    min_date = df["Date"].min()
-    start_boundary = min_date.normalize() + pd.Timedelta(hours=15)
-
-    days_since_friday = (start_boundary.weekday() - 4) % 7
-    start_boundary -= pd.Timedelta(days=days_since_friday)
-
-    if start_boundary > min_date:
-        start_boundary -= pd.Timedelta(days=7)
-
-    # Generate gameweek boundaries with alternating 4/3 day periods
-    max_date = df["Date"].max()
-    boundaries = [start_boundary]
-    periods = [pd.Timedelta(days=4), pd.Timedelta(days=3)]
-
-    while boundaries[-1] <= max_date + pd.Timedelta(days=7):
-        boundaries.append(boundaries[-1] + periods[len(boundaries) % 2])
-
-    # Create intervals dataframe starting from the calculated starting gameweek
-    intervals = pd.DataFrame({
-        "boundary": boundaries[:-1],
-        "gameweek": range(starting_gameweek, starting_gameweek + len(boundaries) - 1)
-    })
-
-    # Assign gameweeks using backward merge
-    df = df.sort_values("Date")
-    df = pd.merge_asof(
-        df,
-        intervals,
-        left_on="Date",
-        right_on="boundary",
-        direction="backward"
-    )
-
-    # Handle any unassigned dates with forward merge
-    if df["gameweek"].isna().any():
-        df_unassigned = df[df["gameweek"].isna()]
-        df_assigned = pd.merge_asof(
-            df_unassigned.sort_values("Date"),
-            intervals,
-            left_on="Date",
-            right_on="boundary",
-            direction="forward"
-        )
-        df.loc[df["gameweek"].isna(), "gameweek"] = df_assigned["gameweek"].values
-
-    # Convert to integer and cleanup
-    df["Gameweek"] = df["gameweek"].astype(int)
-    df.drop(columns=["boundary", "gameweek"], inplace=True, errors="ignore")
-
+    # Normalize gameweeks to start from 1
+    # This subtracts the minimum and adds 1, so if min is 605, gameweeks become 1, 2, 3...
+    df["Gameweek"] = (df["Gameweek"] - min_gameweek + 1).astype(int)
+    
     return df
 
 

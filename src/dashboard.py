@@ -117,11 +117,14 @@ def main():
 
     st.markdown("---")
 
-    # Display the grid
+    # Display the grid with responsive height
+    # Use smaller height on mobile, larger on desktop
+    grid_height = 600  # Default height that works well on mobile
+
     AgGrid(
         grid_df,
         gridOptions=grid_options,
-        height=720,
+        height=grid_height,
         allow_unsafe_jscode=True,
         theme="streamlit",
         update_mode="NO_UPDATE",
@@ -131,24 +134,21 @@ def main():
     # Export section
     st.markdown("---")
     
-    col1, col2 = st.columns([3, 1])
+    # Better mobile layout for download section
+    st.markdown("### 📥 Export Data")
+    st.markdown("Download the current view as a CSV file for further analysis.")
     
-    with col1:
-        st.markdown("### 📥 Export Data")
-        st.markdown("Download the current view as a CSV file for further analysis.")
+    export_df = grid_df[["Rank", "Name"] + gw_columns + ["Avg"]]
     
-    with col2:
-        export_df = grid_df[["Rank", "Name"] + gw_columns + ["Avg"]]
-        
-        st.download_button(
-            "📊 Download CSV",
-            export_df.to_csv(index=False).encode(),
-            "opponent_difficulty.csv",
-            "text/csv",
-            help="Download the filtered data as CSV"
-        )
+    st.download_button(
+        "📊 Download CSV",
+        export_df.to_csv(index=False).encode(),
+        "opponent_difficulty.csv",
+        "text/csv",
+        help="Download the filtered data as CSV"
+    )
     
-    # Footer with color legend
+    # Footer with color legend - stacked on mobile
     st.markdown("---")
     st.markdown("### 🎨 Color Legend")
     
@@ -157,8 +157,9 @@ def main():
     with legend_col1:
         st.markdown(
             '<div style="background-color: rgb(34, 197, 94); padding: 10px; '
-            'border-radius: 8px; text-align: center; color: white; font-weight: 600;">'
-            'Easy Fixture</div>',
+            'border-radius: 8px; text-align: center; color: white; font-weight: 600; '
+            'margin-bottom: 0.5rem;">'
+            'Easy</div>',
             unsafe_allow_html=True
         )
     
@@ -166,14 +167,15 @@ def main():
         st.markdown(
             '<div style="background-color: rgb(255, 255, 255); padding: 10px; '
             'border-radius: 8px; text-align: center; border: 1px solid #cbd5e1; '
-            'font-weight: 600;">Neutral Fixture</div>',
+            'font-weight: 600; margin-bottom: 0.5rem;">Neutral</div>',
             unsafe_allow_html=True
         )
     
     with legend_col3:
         st.markdown(
             '<div style="background-color: rgb(239, 68, 68); padding: 10px; '
-            'border-radius: 8px; text-align: center; color: white; font-weight: 600;">'
-            'Hard Fixture</div>',
+            'border-radius: 8px; text-align: center; color: white; font-weight: 600; '
+            'margin-bottom: 0.5rem;">'
+            'Hard</div>',
             unsafe_allow_html=True
         )

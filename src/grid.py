@@ -25,7 +25,8 @@ def create_cell_style_js(center, color_scheme, opacity):
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            fontWeight: "500"
+            fontWeight: "500",
+            fontSize: "clamp(0.7rem, 2vw, 0.95rem)"
         }};
 
         if (v == null || isNaN(v)) {{
@@ -72,11 +73,13 @@ def configure_grid(grid_df, gw_columns, cell_style_js):
     """
     gb = GridOptionsBuilder.from_dataframe(grid_df)
 
-    # Configure pinned columns with better styling
+    # Configure pinned columns with mobile-friendly widths
     gb.configure_column(
         "Rank", 
         pinned="left", 
-        width=80,
+        width=60,
+        minWidth=50,
+        maxWidth=80,
         headerName="Rank",
         cellStyle={'textAlign': 'center', 'fontWeight': '600'}
     )
@@ -86,35 +89,42 @@ def configure_grid(grid_df, gw_columns, cell_style_js):
     gb.configure_column(
         "Name", 
         pinned="left", 
-        width=220,
+        width=180,
+        minWidth=120,
+        maxWidth=250,
         headerName="Team",
-        cellStyle={'fontWeight': '600', 'paddingLeft': '12px'}
+        cellStyle={'fontWeight': '600', 'paddingLeft': '8px'}
     )
 
-    # Configure gameweek columns with tooltips and styling
+    # Configure gameweek columns with mobile-friendly widths
     for col in gw_columns + ["Avg"]:
-        header_name = "Average" if col == "Avg" else col
+        header_name = "Avg" if col == "Avg" else col
         
         gb.configure_column(
             col,
             headerName=header_name,
             tooltipField=f"{col}__tip",
             cellStyle=cell_style_js,
-            width=110,
+            width=90,
+            minWidth=70,
+            maxWidth=120,
             headerClass="ag-center-header"
         )
         gb.configure_column(f"{col}__val", hide=True)
         gb.configure_column(f"{col}__tip", hide=True)
 
-    # Grid-level options
+    # Grid-level options optimized for mobile
     gb.configure_grid_options(
         tooltipShowDelay=0,
         animateRows=True,
-        rowHeight=45,
-        headerHeight=50,
+        rowHeight=40,
+        headerHeight=45,
         suppressMenuHide=True,
         enableCellTextSelection=True,
-        ensureDomOrder=True
+        ensureDomOrder=True,
+        suppressHorizontalScroll=False,
+        alwaysShowHorizontalScroll=False,
+        suppressColumnVirtualisation=False
     )
 
     # Configure default column properties
