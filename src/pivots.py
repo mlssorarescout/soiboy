@@ -21,21 +21,21 @@ def create_pivot_tables(df, metric):
     value_pivot = df.pivot_table(
         values=metric, 
         index=pivot_index, 
-        columns="Gameweek", 
+        columns="Game Week",  # Changed from "Gameweek"
         aggfunc="first"
     )
     
     label_pivot = df.pivot_table(
         values="CellLabel", 
         index=pivot_index, 
-        columns="Gameweek", 
+        columns="Game Week",  # Changed from "Gameweek"
         aggfunc="first"
     ).fillna("")
     
     opponent_pivot = df.pivot_table(
         values="Opponent", 
         index=pivot_index, 
-        columns="Gameweek", 
+        columns="Game Week",  # Changed from "Gameweek"
         aggfunc="first"
     ).fillna("")
 
