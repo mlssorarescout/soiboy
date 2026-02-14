@@ -2,7 +2,17 @@ from st_aggrid import GridOptionsBuilder, JsCode
 
 
 def create_cell_style_js(center, color_scheme, opacity):
-
+    """
+    Create JavaScript code for dynamic cell styling based on difficulty values.
+    
+    Args:
+        center: The neutral difficulty value
+        color_scheme: Dictionary with 'easy', 'hard', and 'neutral' RGB tuples
+        opacity: Multiplier for color intensity
+        
+    Returns:
+        JsCode object for cell styling
+    """
     easy = color_scheme["easy"]
     hard = color_scheme["hard"]
     neutral = color_scheme["neutral"]
@@ -49,27 +59,69 @@ def create_cell_style_js(center, color_scheme, opacity):
 
 
 def configure_grid(grid_df, gw_columns, cell_style_js):
-
+    """
+    Configure AG Grid options for the opponent difficulty table.
+    
+    Args:
+        grid_df: DataFrame to display
+        gw_columns: List of gameweek column names
+        cell_style_js: JsCode for cell styling
+        
+    Returns:
+        Dictionary of grid options
+    """
     gb = GridOptionsBuilder.from_dataframe(grid_df)
 
-    gb.configure_column("Rank", pinned="left", width=80)
+    # Configure pinned columns with better styling
+    gb.configure_column(
+        "Rank", 
+        pinned="left", 
+        width=80,
+        headerName="Rank",
+        cellStyle={'textAlign': 'center', 'fontWeight': '600'}
+    )
+    
     gb.configure_column("Rank_Sort", hide=True)
-    gb.configure_column("Name", pinned="left", width=220)
+    
+    gb.configure_column(
+        "Name", 
+        pinned="left", 
+        width=220,
+        headerName="Team",
+        cellStyle={'fontWeight': '600', 'paddingLeft': '12px'}
+    )
 
+    # Configure gameweek columns with tooltips and styling
     for col in gw_columns + ["Avg"]:
+        header_name = "Average" if col == "Avg" else col
+        
         gb.configure_column(
             col,
+            headerName=header_name,
             tooltipField=f"{col}__tip",
             cellStyle=cell_style_js,
-            width=110
+            width=110,
+            headerClass="ag-center-header"
         )
         gb.configure_column(f"{col}__val", hide=True)
         gb.configure_column(f"{col}__tip", hide=True)
 
+    # Grid-level options
     gb.configure_grid_options(
         tooltipShowDelay=0,
         animateRows=True,
-        rowHeight=45
+        rowHeight=45,
+        headerHeight=50,
+        suppressMenuHide=True,
+        enableCellTextSelection=True,
+        ensureDomOrder=True
+    )
+
+    # Configure default column properties
+    gb.configure_default_column(
+        resizable=True,
+        sortable=True,
+        filter=False
     )
 
     return gb.build()

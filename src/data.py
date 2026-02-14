@@ -5,28 +5,58 @@ from src.config import COMPETITION_NAMES
 
 @st.cache_data
 def load_and_prepare_data(file_path):
+    """
+    Load and prepare the opponent difficulty data from CSV.
+    
+    Args:
+        file_path: Path to the CSV file
+        
+    Returns:
+        Prepared DataFrame with cleaned data types and display names
+        
+    Raises:
+        FileNotFoundError: If the CSV file doesn't exist
+        Exception: For other data loading errors
+    """
     df = pd.read_csv(file_path)
 
+    # Convert date column to datetime
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce", utc=True)
 
+    # Convert numeric columns
     numeric_cols = ["Domestic League Ranking", "Score_mean", "Score_median"]
     for col in numeric_cols:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
+    # Create display-friendly competition names
     df["Competition_Display"] = df["Comp_Slug"].map(COMPETITION_NAMES).fillna(
         df["name (upcomingGames.competition)"]
     )
 
+    # Map location to H/A abbreviation
     df["HA"] = df["Location"].map({"Home": "H", "Away": "A"}).fillna("")
 
     return df
 
 
 def calculate_gameweeks(df):
+    """
+    Calculate gameweek numbers based on match dates.
+    
+    Uses a Friday-to-Thursday week definition with 4-day and 3-day periods
+    alternating to align with typical match schedules.
+    
+    Args:
+        df: DataFrame with 'Date' column
+        
+    Returns:
+        DataFrame with 'Gameweek' column added
+    """
     if df.empty or df["Date"].isna().all():
         df["Gameweek"] = pd.NA
         return df
 
+    # Find the first Friday at 3 PM before the earliest match
     min_date = df["Date"].min()
     start_boundary = min_date.normalize() + pd.Timedelta(hours=15)
 
@@ -36,6 +66,7 @@ def calculate_gameweeks(df):
     if start_boundary > min_date:
         start_boundary -= pd.Timedelta(days=7)
 
+    # Generate gameweek boundaries with alternating 4/3 day periods
     max_date = df["Date"].max()
     boundaries = [start_boundary]
     periods = [pd.Timedelta(days=4), pd.Timedelta(days=3)]
@@ -43,11 +74,13 @@ def calculate_gameweeks(df):
     while boundaries[-1] <= max_date + pd.Timedelta(days=7):
         boundaries.append(boundaries[-1] + periods[len(boundaries) % 2])
 
+    # Create intervals dataframe
     intervals = pd.DataFrame({
         "boundary": boundaries[:-1],
         "gameweek": range(1, len(boundaries))
     })
 
+    # Assign gameweeks using backward merge
     df = df.sort_values("Date")
     df = pd.merge_asof(
         df,
@@ -57,6 +90,7 @@ def calculate_gameweeks(df):
         direction="backward"
     )
 
+    # Handle any unassigned dates with forward merge
     if df["gameweek"].isna().any():
         df_unassigned = df[df["gameweek"].isna()]
         df_assigned = pd.merge_asof(
@@ -68,6 +102,7 @@ def calculate_gameweeks(df):
         )
         df.loc[df["gameweek"].isna(), "gameweek"] = df_assigned["gameweek"].values
 
+    # Convert to integer and cleanup
     df["Gameweek"] = df["gameweek"].astype(int)
     df.drop(columns=["boundary", "gameweek"], inplace=True, errors="ignore")
 
@@ -75,6 +110,18 @@ def calculate_gameweeks(df):
 
 
 def prepare_ranking_display(df):
+    """
+    Prepare ranking columns for display in the grid.
+    
+    Creates both a sortable integer column and a display-friendly string column
+    where missing ranks show as "-".
+    
+    Args:
+        df: DataFrame with 'Domestic League Ranking' column
+        
+    Returns:
+        DataFrame with 'Rank_Sort' and 'Rank_Display' columns added
+    """
     df["Rank_Sort"] = df["Domestic League Ranking"].fillna(9999).astype(int)
     df["Rank_Display"] = df["Domestic League Ranking"].apply(
         lambda x: "-" if pd.isna(x) else str(int(x))
