@@ -43,11 +43,12 @@ def calculate_gameweeks(df):
     """
     Calculate gameweek numbers based on match dates.
     
-    Uses a Friday-to-Thursday week definition with 4-day and 3-day periods
+    Uses the 'Game Week' column from CSV to determine the starting gameweek,
+    then applies Friday-to-Thursday week definition with 4-day and 3-day periods
     alternating to align with typical match schedules.
     
     Args:
-        df: DataFrame with 'Date' column
+        df: DataFrame with 'Date' column and 'Game Week' column from CSV
         
     Returns:
         DataFrame with 'Gameweek' column added
@@ -55,6 +56,24 @@ def calculate_gameweeks(df):
     if df.empty or df["Date"].isna().all():
         df["Gameweek"] = pd.NA
         return df
+
+    # Check if Game Week column exists and find the minimum value
+    if "Game Week" not in df.columns:
+        st.error("❌ 'Game Week' column not found in the CSV file.")
+        st.stop()
+    
+    # Convert Game Week to numeric and find minimum (ignoring NaN values)
+    game_week_values = pd.to_numeric(df["Game Week"], errors="coerce")
+    valid_gameweeks = game_week_values.dropna()
+    
+    if valid_gameweeks.empty:
+        st.error("❌ No valid Game Week values found in the CSV file.")
+        st.stop()
+    
+    min_game_week = valid_gameweeks.min()
+    
+    # Calculate the starting gameweek (min - 604)
+    starting_gameweek = int(min_game_week - 604)
 
     # Find the first Friday at 3 PM before the earliest match
     min_date = df["Date"].min()
@@ -74,10 +93,10 @@ def calculate_gameweeks(df):
     while boundaries[-1] <= max_date + pd.Timedelta(days=7):
         boundaries.append(boundaries[-1] + periods[len(boundaries) % 2])
 
-    # Create intervals dataframe
+    # Create intervals dataframe starting from the calculated starting gameweek
     intervals = pd.DataFrame({
         "boundary": boundaries[:-1],
-        "gameweek": range(1, len(boundaries))
+        "gameweek": range(starting_gameweek, starting_gameweek + len(boundaries) - 1)
     })
 
     # Assign gameweeks using backward merge
