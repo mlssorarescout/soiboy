@@ -16,7 +16,7 @@ from src.grid import create_cell_style_js, configure_grid
 
 def main():
     # Header section with better formatting
-    st.markdown("# ⚽ Opponent Difficulty Dashboard")
+    st.markdown("# ⚽ Sorare Opportunity Index (SOI)")
     st.markdown("### Analyze fixture difficulty across competitions and gameweeks")
     st.markdown("<hr>", unsafe_allow_html=True)
 
