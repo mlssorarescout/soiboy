@@ -124,7 +124,10 @@ def configure_grid(grid_df, gw_columns, cell_style_js):
         ensureDomOrder=True,
         suppressHorizontalScroll=False,
         alwaysShowHorizontalScroll=False,
-        suppressColumnVirtualisation=False
+        # Add selection options
+        rowSelection='multiple',
+        suppressRowClickSelection=False,
+        enableRangeSelection=True
     )
 
     # Configure default column properties
