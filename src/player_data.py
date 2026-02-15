@@ -58,9 +58,9 @@ def normalize_strength_metrics(df):
     # Mean Opponent Score / 60 (cap at 1) - INVERTED for Next 5 Difficulty
     if "Mean_Opp_Score" in df.columns:
         # Divide by 60 and cap at 1
-        normalized = (df["Mean_Opp_Score"] / 60).clip(upper=1.0)
+        normalized = (df["Mean_Opp_Score"] / 70).clip(upper=1.0)
         # Invert: lower opponent score = easier = higher strength (1 - normalized)
-        df["Next_5_Diff_Strength"] = (1 - normalized).clip(0, 1)
+        df["Next_5_Diff_Strength"] = (normalized).clip(0, 1)
         df["Next_5_Diff_Strength"] = df["Next_5_Diff_Strength"].replace([float('inf'), float('-inf')], float('nan'))
         # Display as the inverted strength value (0-1), will be colored dynamically
         df["Next_5_Diff_Display"] = df["Next_5_Diff_Strength"].round(2)
