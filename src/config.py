@@ -24,6 +24,44 @@ COMPETITION_NAMES = {
     "campeonato-brasileiro-serie-a": "Brasil Serie A",
 }
 
+# Sorare Competition mapping
+# Maps competition names to Sorare competition groups
+SORARE_COMPETITION_MAPPING = {
+    "Austrian Bundesliga": "Challenger",
+    "First Division A": "Jupiler Pro League",
+    "UEFA Champions League": "UEFA",
+    "UEFA Europa League": "UEFA",
+    "HNL": "Contender",
+    "Superliga": "Challenger",
+    "Premier League": "Premier League",
+    "Championship": "Contender",
+    "Ligue 1": "Ligue 1",
+    "Ligue 2": "Contender",
+    "Bundesliga": "Bundesliga",
+    "2. Bundesliga": "Contender",
+    "Serie A": "Challenger",
+    "Serie B": "Contender",
+    "Eredivisie": "Eredivisie",
+    "Primeira Liga": "Challenger",
+    "Premiership": "Challenger",
+    "LaLiga": "LaLiga",
+    "Segunda División": "Contender",
+    "Süper Lig": "Challenger",
+    "MLS": "MLS",
+    "Concacaf Champions Cup": "Concacaf Champions Cup",
+    "Liga Profesional Argentina": "Contender",
+    "CONMEBOL Libertadores": "CONMEBOL Libertadores",
+    "Liga MX": "Contender",
+    "K League 1": "K League 1",
+    "AFC Champions League Elite": "AFC Champions League Elite",
+    "Liga 1": "Contender",
+    "Primera Division": "Contender",
+    "Brasil Serie A": "Contender",
+    "Super League": "Contender",
+    "Primera A": "Contender",
+    "J1 100 Year Vision League": "J1 100 Year Vision League",
+}
+
 # Color scheme for difficulty visualization
 # RGB tuples for easy, hard, and neutral difficulty ratings
 DIFFICULTY_COLORS = {

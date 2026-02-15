@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from src.config import COMPETITION_NAMES
+from src.config import COMPETITION_NAMES, SORARE_COMPETITION_MAPPING
 
 
 @st.cache_data
@@ -32,6 +32,9 @@ def load_and_prepare_data(file_path):
     df["Competition_Display"] = df["Comp_Slug"].map(COMPETITION_NAMES).fillna(
         df["name (upcomingGames.competition)"]
     )
+    
+    # Create Sorare Competition grouping (use Competition_Display instead of raw name)
+    df["Sorare_Competition"] = df["Competition_Display"].map(SORARE_COMPETITION_MAPPING).fillna("Other")
 
     # Map location to H/A abbreviation
     df["HA"] = df["Location"].map({"Home": "H", "Away": "A"}).fillna("")

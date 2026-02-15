@@ -120,7 +120,7 @@ def calculate_soi(df, weights):
     return df
 
 
-def filter_players_by_gameweeks(player_df, fixture_df, selected_gameweeks, competition, position):
+def filter_players_by_gameweeks(player_df, fixture_df, selected_gameweeks, selected_competitions, position):
     """
     Filter players to only show those from teams playing in selected gameweeks.
     
@@ -128,16 +128,16 @@ def filter_players_by_gameweeks(player_df, fixture_df, selected_gameweeks, compe
         player_df: DataFrame with player data
         fixture_df: DataFrame with fixture data (from first dashboard)
         selected_gameweeks: List of selected gameweek numbers
-        competition: Selected competition
+        selected_competitions: List of selected competition names
         position: Selected position
         
     Returns:
         Filtered DataFrame with only relevant players
     """
-    # Get unique teams playing in selected gameweeks
+    # Get unique teams playing in selected gameweeks and competitions
     fixtures_filtered = fixture_df[
         (fixture_df["Game Week"].isin(selected_gameweeks)) &
-        (fixture_df["Competition_Display"] == competition)
+        (fixture_df["Competition_Display"].isin(selected_competitions))
     ]
     
     playing_teams = set(fixtures_filtered["Name"].unique())

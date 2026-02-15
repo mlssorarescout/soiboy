@@ -54,15 +54,37 @@ def main():
     # Sidebar filters with icons
     st.sidebar.markdown("## 🎯 Filters")
 
-    # Competition filter
-    competitions = sorted(df["Competition_Display"].dropna().unique())
-    competition = st.sidebar.selectbox(
-        "⚽ Competition",
-        competitions,
-        help="Select a competition to analyze"
+    # Sorare Competition filter (first level - single select)
+    sorare_competitions = sorted(df["Sorare_Competition"].dropna().unique())
+    
+    # Set default to Contender if available, otherwise first option
+    default_sorare = "Contender" if "Contender" in sorare_competitions else sorare_competitions[0]
+    default_index = sorare_competitions.index(default_sorare)
+    
+    selected_sorare_comp = st.sidebar.selectbox(
+        "🏆 Sorare Competition",
+        sorare_competitions,
+        index=default_index,
+        help="Filter by Sorare competition group"
     )
+    
+    # Filter data by Sorare Competition
+    df_sorare_filtered = df[df["Sorare_Competition"] == selected_sorare_comp]
 
-    df_filtered = df[df["Competition_Display"] == competition]
+    # Competition filter (multi-select, filtered by Sorare Competition)
+    available_competitions = sorted(df_sorare_filtered["Competition_Display"].dropna().unique())
+    selected_competitions = st.sidebar.multiselect(
+        "⚽ Competition",
+        available_competitions,
+        default=available_competitions,
+        help="Select competitions to analyze"
+    )
+    
+    if not selected_competitions:
+        st.warning("⚠️ Please select at least one competition.")
+        st.stop()
+
+    df_filtered = df_sorare_filtered[df_sorare_filtered["Competition_Display"].isin(selected_competitions)]
 
     # Position filter
     positions = sorted(df_filtered["Position"].dropna().unique())
@@ -116,7 +138,7 @@ def main():
             "L15 Form Weight",
             min_value=0.0,
             max_value=1.0,
-            value=0.2,
+            value=0.4,
             step=0.05,
             help="Weight for Last 15 games form"
         ),
@@ -132,7 +154,7 @@ def main():
             "L5 Minutes Weight",
             min_value=0.0,
             max_value=1.0,
-            value=0.2,
+            value=0.1,
             step=0.05,
             help="Weight for Last 5 games minutes"
         ),
@@ -140,7 +162,7 @@ def main():
             "L15 Minutes Weight",
             min_value=0.0,
             max_value=1.0,
-            value=0.2,
+            value=0.1,
             step=0.05,
             help="Weight for Last 15 games minutes"
         )
@@ -177,32 +199,36 @@ def main():
     # Configure grid options
     grid_options = configure_grid(grid_df, gw_columns, cell_js)
 
-    # Display metrics summary
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Teams", len(grid_df))
-    with col2:
-        st.metric("Gameweeks", len(selected_gameweeks))
-    with col3:
-        avg_difficulty = grid_df["Avg__val"].mean()
-        st.metric("Avg Difficulty", f"{avg_difficulty:.1f}")
+#    # Display metrics summary
+#    col1, col2, col3 = st.columns(3)
+#    with col1:
+#        st.metric("Teams", len(grid_df))
+#    with col2:
+#        st.metric("Gameweeks", len(selected_gameweeks))
+#    with col3:
+#        avg_difficulty = grid_df["Avg__val"].mean()
+#        st.metric("Avg Difficulty", f"{avg_difficulty:.1f}")
 
-    st.markdown("---")
+#    st.markdown("---")
 
     # Display the fixture grid
     st.markdown("### 📊 Team Fixture Difficulty")
     
     grid_height = 600  # Default height that works well on mobile
 
-    AgGrid(
+    grid_response = AgGrid(
         grid_df,
         gridOptions=grid_options,
         height=grid_height,
         allow_unsafe_jscode=True,
         theme="streamlit",
-        update_mode="NO_UPDATE",
-        fit_columns_on_grid_load=False
+        update_mode="MODEL_CHANGED",
+        fit_columns_on_grid_load=False,
+        enable_enterprise_modules=False
     )
+    
+    # Get selected rows
+    selected_rows = grid_response['selected_rows']
 
     # Export section for fixtures
     st.markdown("---")
@@ -226,9 +252,8 @@ def main():
     
     if player_df is not None:
         st.markdown("---")
-        st.markdown("---")
         
-        st.markdown("## 👥 Player Strength Analysis")
+        st.markdown("## 👥 Sorare Opportunity Index")
         st.markdown("### Players from teams playing in selected gameweeks")
         st.markdown("<hr>", unsafe_allow_html=True)
         
@@ -237,9 +262,15 @@ def main():
             player_df,
             df,
             selected_gameweeks,
-            competition,
+            selected_competitions,
             position
         )
+        
+        # Further filter by selected teams if any rows are selected in the fixture grid
+        if selected_rows is not None and len(selected_rows) > 0:
+            selected_teams = selected_rows['Name'].tolist()
+            st.info(f"🎯 Showing players from {len(selected_teams)} selected team(s)")
+            players_filtered = players_filtered[players_filtered['Club'].isin(selected_teams)]
         
         # Calculate SOI with user-defined weights
         players_filtered = calculate_soi(players_filtered, soi_weights)
@@ -248,17 +279,17 @@ def main():
             st.info("ℹ️ No players found for the selected filters and gameweeks.")
         else:
             # Display player metrics summary
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Players", len(players_filtered))
-            with col2:
-                avg_form = players_filtered["L5_Form_Display"].mean()
-                st.metric("Avg L5 Form", f"{avg_form:.1f}")
-            with col3:
-                avg_mins = players_filtered["L5_Mins_Display"].mean()
-                st.metric("Avg L5 Minutes", f"{avg_mins:.0f}")
-            
-            st.markdown("---")
+#            col1, col2, col3 = st.columns(3)
+#            with col1:
+#                st.metric("Players", len(players_filtered))
+#            with col2:
+#                avg_form = players_filtered["L5_Form_Display"].mean()
+#                st.metric("Avg L5 Form", f"{avg_form:.2f}")
+#            with col3:
+#                avg_soi = players_filtered["SOI_Score"].mean()
+#                st.metric("Avg SOI", f"{avg_soi:.2f}")
+#            
+#            st.markdown("---")
             
             # Prepare player grid
             player_grid_df, strength_cols = prepare_player_grid_data(players_filtered)
@@ -272,11 +303,11 @@ def main():
             
             # Configure player grid
             player_grid_options = configure_player_grid(
-            player_grid_df,
-            strength_cols,
-            strength_cell_js,
-            STRENGTH_COLORS,
-            STRENGTH_OPACITY
+                player_grid_df,
+                strength_cols,
+                strength_cell_js,
+                STRENGTH_COLORS,
+                STRENGTH_OPACITY
             )
             
             # Display player grid
