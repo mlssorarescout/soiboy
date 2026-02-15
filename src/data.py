@@ -76,7 +76,7 @@ def calculate_gameweeks(df):
     min_game_week = valid_gameweeks.min()
     
     # Calculate the starting gameweek (min - 604)
-    starting_gameweek = int(min_game_week - 604)
+    starting_gameweek = int(min_game_week - 605)
 
     # Find the first Friday at 3 PM before the earliest match
     min_date = df["Date"].min()
