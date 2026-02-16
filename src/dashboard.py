@@ -18,6 +18,11 @@ from src.pivots import create_pivot_tables, prepare_grid_dataframe
 from src.grid import create_cell_style_js, configure_grid
 from src.player_data import load_player_data, normalize_strength_metrics, filter_players_by_gameweeks, calculate_soi
 from src.player_grid import create_strength_cell_style_js, configure_player_grid, prepare_player_grid_data
+from src.matchup_cohesion import (
+    find_best_matchup_cohesions,
+    prepare_cohesion_display_df,
+    create_matchup_detail_grid
+)
 
 
 def main():
@@ -350,6 +355,212 @@ def main():
                 "text/csv",
                 help="Download the player strength data as CSV"
             )
+    
+    # ============================================================
+    # MATCHUP COHESION DASHBOARD (THIRD DASHBOARD)
+    # ============================================================
+    
+    st.markdown("---")
+    
+    st.markdown("## 🔄 Matchup Cohesion Analysis")
+    st.markdown("### Find complementary team matchups")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    # Standalone Position Filter for Cohesion (independent from sidebar)
+    # Use df instead of df_filtered to get all positions, not just sidebar-filtered ones
+    all_positions_cohesion = sorted(df[df["Sorare_Competition"] == selected_sorare_comp]["Position"].dropna().unique())
+    
+    col_filter1, col_filter2 = st.columns(2)
+    
+    with col_filter1:
+        cohesion_positions = st.multiselect(
+            "📍 Position(s) to Analyze",
+            all_positions_cohesion,
+            default=all_positions_cohesion,
+            help="Select one or more positions for matchup analysis (independent from sidebar filter)",
+            key="cohesion_positions"
+        )
+    
+    with col_filter2:
+        min_both_play = st.slider(
+            "🎯 Min % Both Teams Play",
+            min_value=0,
+            max_value=100,
+            value=0,
+            step=10,
+            help="Filter to only show teams that play together in at least this % of gameweeks",
+            key="cohesion_min_both_play"
+        )
+    
+    if not cohesion_positions:
+        st.warning("⚠️ Please select at least one position to analyze.")
+    else:
+        # Filter data for cohesion analysis using the cohesion-specific position filter
+        # Start with data already filtered by Sorare Competition and Competitions
+        df_cohesion = df_sorare_filtered[
+            (df_sorare_filtered["Competition_Display"].isin(selected_competitions)) &
+            (df_sorare_filtered["Position"].isin(cohesion_positions)) &
+            (df_sorare_filtered["Game Week"].isin(selected_gameweeks))
+        ]
+        
+        # Get all teams from the cohesion-filtered data
+        available_teams = sorted(df_cohesion["Name"].unique())
+        
+        if len(available_teams) < 2:
+            st.info("ℹ️ Need at least 2 teams to analyze matchup cohesion.")
+        else:
+            # Team selection
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                primary_team = st.selectbox(
+                    "🎯 Select Primary Team",
+                    available_teams,
+                    help="Choose the team to find matchup partners for",
+                    key="cohesion_primary_team"
+                )
+            
+            with col2:
+                top_n = st.number_input(
+                    "Top N Partners",
+                    min_value=5,
+                    max_value=50,
+                    value=15,
+                    step=5,
+                    help="Number of best matchup partners to show"
+                )
+            
+            # Info box explaining the scoring
+            with st.expander("ℹ️ How Cohesion Score is Calculated", expanded=False):
+                position_text = ", ".join(cohesion_positions) if len(cohesion_positions) > 1 else cohesion_positions[0]
+                st.markdown(f"""
+                **Analyzing Position(s): {position_text}**
+                
+                **Cohesion Score Formula:**
+                ```
+                Score = (Both Play % × 20%) + (Both Home % × 40%) + (Difficulty Score × 40%)
+                where Difficulty Score = Avg Difficulty / 70
+                ```
+                
+                **Column Definitions:**
+                - **Rank**: Teams ranked by cohesion score (higher is better)
+                - **Team Match**: The partner team being evaluated
+                - **Position**: Position(s) being analyzed
+                - **Both Play %**: Percentage of selected gameweeks where both teams have a match
+                - **Both Home %**: Percentage of PRIMARY team's home games where partner is also home
+                - **Avg Difficulty**: Combined average difficulty score (lower is easier)
+                - **Cohesion Score**: Overall matchup quality (0-100, higher is better)
+                
+                **Weights Explanation:**
+                - Both Home % gets the most weight (40%) because having coverage for your home games is crucial
+                - Avg Difficulty also weighted heavily (40%) for ease of fixtures
+                - Both Play % weighted lower (20%) - overlap is less important than quality
+                
+                **Both Home % Explanation:**
+                If your selected team has 2 home games in the upcoming gameweeks, and a partner team 
+                also has home games in both those same gameweeks, they would show 100% Both Home %.
+                This helps you find teams that give you options when your primary team plays at home.
+                
+                **Filters:**
+                - **Min % Both Teams Play**: Only shows teams that play together in at least this % of gameweeks
+                - **Positions**: Completely independent from sidebar position filter - analyze any positions
+                """)
+            
+            # Calculate matchup cohesions
+            with st.spinner("Calculating matchup cohesion..."):
+                cohesion_df = find_best_matchup_cohesions(
+                    df_cohesion,
+                    primary_team,
+                    selected_gameweeks,
+                    metric,
+                    cohesion_positions,
+                    top_n=top_n,
+                    min_both_play_pct=min_both_play
+                )
+            
+            if cohesion_df.empty:
+                st.info(f"ℹ️ No teams found matching the criteria (min {min_both_play}% both play). Try lowering the minimum threshold.")
+            else:              
+                # Prepare display dataframe
+                display_df = prepare_cohesion_display_df(cohesion_df)
+                
+                # Create styled dataframe with progress bars
+                position_text = ", ".join(cohesion_positions) if len(cohesion_positions) > 1 else cohesion_positions[0]
+                st.markdown("### 🎯 Matchup Cohesion Rankings")
+                st.markdown(f"*Showing top {len(display_df)} partners for **{primary_team}** at **{position_text}***")
+                
+                if min_both_play > 0:
+                    st.markdown(f"*Filtered to teams that play together in ≥{min_both_play}% of gameweeks*")
+                
+                # Display the dataframe with column configuration for better visualization
+                st.dataframe(
+                    display_df,
+                    column_config={
+                        "Rank": st.column_config.NumberColumn(
+                            "Rank",
+                            help="Ranking by cohesion score",
+                            format="%d",
+                            width="small"
+                        ),
+                        "Team Match": st.column_config.TextColumn(
+                            "Team Match",
+                            help="Partner team name",
+                            width="medium"
+                        ),
+                        "Position": st.column_config.TextColumn(
+                            "Position",
+                            help="Position(s) being analyzed",
+                            width="medium"
+                        ),
+                        "Both Play %": st.column_config.ProgressColumn(
+                            "Both Play %",
+                            help="% of gameweeks where both teams play",
+                            format="%.1f%%",
+                            min_value=0,
+                            max_value=100,
+                            width="medium"
+                        ),
+                        "Both Home %": st.column_config.ProgressColumn(
+                            "Both Home %",
+                            help="% of primary team's home games where partner is also home",
+                            format="%.1f%%",
+                            min_value=0,
+                            max_value=100,
+                            width="medium"
+                        ),
+                        "Avg Difficulty": st.column_config.NumberColumn(
+                            "Avg Difficulty",
+                            help="Combined average difficulty (lower is easier)",
+                            format="%.1f",
+                            width="small"
+                        ),
+                        "Cohesion Score": st.column_config.ProgressColumn(
+                            "Cohesion Score",
+                            help="Overall cohesion score (higher is better)",
+                            format="%.1f",
+                            min_value=0,
+                            max_value=100,
+                            width="medium"
+                        )
+                    },
+                    hide_index=True,
+                    use_container_width=True,
+                    height=500
+                )
+                
+                # Export button
+                st.markdown("---")
+                st.markdown("### 📥 Export Data")
+                
+                csv = display_df.to_csv(index=False).encode('utf-8')
+                
+                st.download_button(
+                    label="📊 Download Matchup Cohesion CSV",
+                    data=csv,
+                    file_name=f"matchup_cohesion_{primary_team}_{position_text.replace(', ', '_')}.csv",
+                    mime="text/csv",
+                    help="Download the complete matchup cohesion rankings"
+                )
     
     # Footer with color legend - stacked on mobile
     st.markdown("---")
