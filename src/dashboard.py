@@ -480,45 +480,7 @@ def main():
             
             if cohesion_df.empty:
                 st.info(f"ℹ️ No teams found matching the criteria (min {min_both_play}% both play). Try lowering the minimum threshold.")
-            else:
-                # Display summary metrics in cards
-                st.markdown("### 📊 Summary Metrics")
-                col1, col2, col3, col4 = st.columns(4)
-                
-                with col1:
-                    best_score = cohesion_df["cohesion_score"].max()
-                    st.metric(
-                        "Best Cohesion Score", 
-                        f"{best_score:.1f}",
-                        help="Highest cohesion score found"
-                    )
-                
-                with col2:
-                    avg_both_home = cohesion_df["both_home_pct"].mean()
-                    st.metric(
-                        "Avg Both Home %", 
-                        f"{avg_both_home:.0f}%",
-                        help="Average % of primary team's home games where partner is also home"
-                    )
-                
-                with col3:
-                    avg_both_play = cohesion_df["both_play_pct"].mean()
-                    st.metric(
-                        "Avg Both Play %", 
-                        f"{avg_both_play:.0f}%",
-                        help="Average percentage of gameweeks where both teams play"
-                    )
-                
-                with col4:
-                    avg_difficulty = cohesion_df["combined_avg_difficulty"].mean()
-                    st.metric(
-                        "Avg Difficulty", 
-                        f"{avg_difficulty:.1f}",
-                        help="Average combined difficulty (lower is easier)"
-                    )
-                
-                st.markdown("---")
-                
+            else:              
                 # Prepare display dataframe
                 display_df = prepare_cohesion_display_df(cohesion_df)
                 
@@ -599,16 +561,6 @@ def main():
                     mime="text/csv",
                     help="Download the complete matchup cohesion rankings"
                 )
-                
-                # Add a visualization
-                st.markdown("---")
-                st.markdown("### 📈 Cohesion Score Distribution")
-                
-                # Simple bar chart of top 10
-                chart_df = display_df.head(10).copy()
-                chart_df = chart_df.set_index("Team Match")
-                
-                st.bar_chart(chart_df["Cohesion Score"], height=300)
     
     # Footer with color legend - stacked on mobile
     st.markdown("---")

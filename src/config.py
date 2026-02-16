@@ -22,6 +22,8 @@ COMPETITION_NAMES = {
     "austrian-bundesliga": "Austrian Bundesliga",
     "serie-a-it": "Serie A",
     "campeonato-brasileiro-serie-a": "Brasil Serie A",
+    "russian-premier-league": "Russian Premier League",
+    "premier-league-gb-eng": "EPL"
 }
 
 # Sorare Competition mapping
@@ -33,7 +35,7 @@ SORARE_COMPETITION_MAPPING = {
     "UEFA Europa League": "UEFA",
     "HNL": "Contender",
     "Superliga": "Challenger",
-    "Premier League": "Premier League",
+    "EPL": "EPL",
     "Championship": "Contender",
     "Ligue 1": "Ligue 1",
     "Ligue 2": "Contender",
@@ -61,6 +63,7 @@ SORARE_COMPETITION_MAPPING = {
     "Primera A": "Contender",
     "J1 100 Year Vision League": "J1 100 Year Vision League",
     "UEFA Conference League": "UEFA",
+    "Russian Premier League": "Contender"
 }
 
 # Color scheme for difficulty visualization
