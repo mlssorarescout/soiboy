@@ -236,20 +236,20 @@ def main():
     selected_rows = grid_response['selected_rows']
 
     # Export section for fixtures
-    st.markdown("---")
+#    st.markdown("---")
     
-    st.markdown("### 📥 Export Fixture Data")
-    st.markdown("Download the fixture difficulty view as a CSV file.")
+#    st.markdown("### 📥 Export Fixture Data")
+#    st.markdown("Download the fixture difficulty view as a CSV file.")
     
-    export_df = grid_df[["Rank", "Name"] + gw_columns + ["Avg"]]
+#    export_df = grid_df[["Rank", "Name"] + gw_columns + ["Avg"]]
     
-    st.download_button(
-        "📊 Download Fixture CSV",
-        export_df.to_csv(index=False).encode(),
-        "opponent_difficulty.csv",
-        "text/csv",
-        help="Download the filtered fixture data as CSV"
-    )
+#    st.download_button(
+#        "📊 Download Fixture CSV",
+#        export_df.to_csv(index=False).encode(),
+#        "opponent_difficulty.csv",
+#        "text/csv",
+#        help="Download the filtered fixture data as CSV"
+#    )
     
     # ============================================================
     # PLAYER STRENGTH DASHBOARD (SECOND DASHBOARD)
@@ -327,34 +327,34 @@ def main():
             )
             
             # Export section for players
-            st.markdown("---")
+            #st.markdown("---")
             
-            st.markdown("### 📥 Export Player Data")
-            st.markdown("Download the player strength analysis as a CSV file.")
+            #st.markdown("### 📥 Export Player Data")
+            #st.markdown("Download the player strength analysis as a CSV file.")
             
-            player_export_df = players_filtered[[
-                "displayName", "Club", "Position",
-                "L5_Form_Display", "L15_Form_Display",
-                "Next_5_Diff_Display",
-                "L5_Mins_Display", "L15_Mins_Display",
-                "SOI_Score"
-            ]].copy()
+            #player_export_df = players_filtered[[
+            #    "displayName", "Club", "Position",
+            #    "L5_Form_Display", "L15_Form_Display",
+            #    "Next_5_Diff_Display",
+            #    "L5_Mins_Display", "L15_Mins_Display",
+            #    "SOI_Score"
+            #]].copy()
             
-            player_export_df.columns = [
-                "Player", "Club", "Position",
-                "L5 Form", "L15 Form",
-                "Next 5 Diff",
-                "L5 Minutes", "L15 Minutes",
-                "SOI"
-            ]
+            #player_export_df.columns = [
+            #    "Player", "Club", "Position",
+            #    "L5 Form", "L15 Form",
+            #    "Next 5 Diff",
+            #    "L5 Minutes", "L15 Minutes",
+            #    "SOI"
+            #]
             
-            st.download_button(
-                "📊 Download Player CSV",
-                player_export_df.to_csv(index=False).encode(),
-                "player_strength.csv",
-                "text/csv",
-                help="Download the player strength data as CSV"
-            )
+            #st.download_button(
+            #    "📊 Download Player CSV",
+            #    player_export_df.to_csv(index=False).encode(),
+            #    "player_strength.csv",
+            #    "text/csv",
+            #    help="Download the player strength data as CSV"
+            #)
     
     # ============================================================
     # MATCHUP COHESION DASHBOARD (THIRD DASHBOARD)
@@ -549,18 +549,18 @@ def main():
                 )
                 
                 # Export button
-                st.markdown("---")
-                st.markdown("### 📥 Export Data")
+                #st.markdown("---")
+                #st.markdown("### 📥 Export Data")
                 
-                csv = display_df.to_csv(index=False).encode('utf-8')
+                #csv = display_df.to_csv(index=False).encode('utf-8')
                 
-                st.download_button(
-                    label="📊 Download Matchup Cohesion CSV",
-                    data=csv,
-                    file_name=f"matchup_cohesion_{primary_team}_{position_text.replace(', ', '_')}.csv",
-                    mime="text/csv",
-                    help="Download the complete matchup cohesion rankings"
-                )
+                #st.download_button(
+                #    label="📊 Download Matchup Cohesion CSV",
+                #    data=csv,
+                #    file_name=f"matchup_cohesion_{primary_team}_{position_text.replace(', ', '_')}.csv",
+                #    mime="text/csv",
+                #    help="Download the complete matchup cohesion rankings"
+                #)
     
     # Footer with color legend - stacked on mobile
     st.markdown("---")
