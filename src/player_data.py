@@ -30,54 +30,123 @@ def load_player_data(file_path):
     return df
 
 
+def calculate_dynamic_fixture_difficulty(player_df, fixture_df, selected_gameweeks, selected_competitions, metric):
+    """
+    Calculate upcoming fixture difficulty for each player based on their team's fixtures
+    in the selected gameweeks, using data from the team fixture difficulty dashboard.
+    
+    Args:
+        player_df: DataFrame with player data
+        fixture_df: DataFrame with fixture data (team difficulty data)
+        selected_gameweeks: List of selected gameweek numbers
+        selected_competitions: List of selected competition names
+        metric: Score_mean or Score_median
+        
+    Returns:
+        DataFrame with Dynamic_Fixture_Difficulty column added
+    """
+    player_df = player_df.copy()
+    
+    # Filter fixtures to selected gameweeks and competitions
+    fixtures_filtered = fixture_df[
+        (fixture_df["Game Week"].isin(selected_gameweeks)) &
+        (fixture_df["Competition_Display"].isin(selected_competitions))
+    ]
+    
+    # Calculate average difficulty for each team-position combination
+    team_position_difficulty = fixtures_filtered.groupby(["Name", "Position"])[metric].mean().reset_index()
+    team_position_difficulty.columns = ["Club", "Position", "Dynamic_Fixture_Difficulty"]
+    
+    # Merge with player data
+    player_df = player_df.merge(
+        team_position_difficulty,
+        on=["Club", "Position"],
+        how="left"
+    )
+    
+    return player_df
+
+
 def normalize_strength_metrics(df):
     """
-    Normalize strength metrics to 0-1 scale with color coding.
+    Normalize strength metrics using percentile rankings (0-1 scale).
     Handles NaN and infinite values gracefully.
     
     Args:
         df: DataFrame with raw player metrics
         
     Returns:
-        DataFrame with normalized strength columns added
+        DataFrame with normalized strength columns based on percentiles
     """
     df = df.copy()
     
-    # Last 5 Score Average / 70 (cap at 1)
+    # Last 5 Score Average - percentile ranking (higher score = higher percentile)
     if "Last_5_Score_Running_Avg" in df.columns:
-        df["L5_Form_Strength"] = (df["Last_5_Score_Running_Avg"] / 70).clip(upper=1.0)
-        df["L5_Form_Strength"] = df["L5_Form_Strength"].replace([float('inf'), float('-inf')], float('nan'))
-        df["L5_Form_Display"] = df["L5_Form_Strength"].round(2)
+        valid_values = df["Last_5_Score_Running_Avg"].dropna()
+        if len(valid_values) > 0:
+            df["L5_Form_Strength"] = df["Last_5_Score_Running_Avg"].rank(pct=True, method='average')
+            df["L5_Form_Strength"] = df["L5_Form_Strength"].replace([float('inf'), float('-inf')], float('nan'))
+            df["L5_Form_Display"] = df["L5_Form_Strength"].round(2)
+        else:
+            df["L5_Form_Strength"] = float('nan')
+            df["L5_Form_Display"] = float('nan')
     
-    # Last 15 Score Average / 70 (cap at 1)
+    # Last 15 Score Average - percentile ranking (higher score = higher percentile)
     if "Last_15_Score_Running_Avg" in df.columns:
-        df["L15_Form_Strength"] = (df["Last_15_Score_Running_Avg"] / 70).clip(upper=1.0)
-        df["L15_Form_Strength"] = df["L15_Form_Strength"].replace([float('inf'), float('-inf')], float('nan'))
-        df["L15_Form_Display"] = df["L15_Form_Strength"].round(2)
+        valid_values = df["Last_15_Score_Running_Avg"].dropna()
+        if len(valid_values) > 0:
+            df["L15_Form_Strength"] = df["Last_15_Score_Running_Avg"].rank(pct=True, method='average')
+            df["L15_Form_Strength"] = df["L15_Form_Strength"].replace([float('inf'), float('-inf')], float('nan'))
+            df["L15_Form_Display"] = df["L15_Form_Strength"].round(2)
+        else:
+            df["L15_Form_Strength"] = float('nan')
+            df["L15_Form_Display"] = float('nan')
     
-    # Mean Opponent Score / 60 (cap at 1) - INVERTED for Next 5 Difficulty
-    if "Mean_Opp_Score" in df.columns:
-        # Divide by 60 and cap at 1
-        normalized = (df["Mean_Opp_Score"] / 70).clip(upper=1.0)
-        # Invert: lower opponent score = easier = higher strength (1 - normalized)
-        df["Next_5_Diff_Strength"] = (normalized).clip(0, 1)
-        df["Next_5_Diff_Strength"] = df["Next_5_Diff_Strength"].replace([float('inf'), float('-inf')], float('nan'))
-        # Display as the inverted strength value (0-1), will be colored dynamically
-        df["Next_5_Diff_Display"] = df["Next_5_Diff_Strength"].round(2)
+    # Dynamic Fixture Difficulty (from team fixture dashboard) or fallback to Mean_Opp_Score
+    # Percentile ranking: higher difficulty = higher percentile = stronger (facing tougher opponents)
+    if "Dynamic_Fixture_Difficulty" in df.columns:
+        valid_values = df["Dynamic_Fixture_Difficulty"].dropna()
+        if len(valid_values) > 0:
+            df["Next_5_Diff_Strength"] = df["Dynamic_Fixture_Difficulty"].rank(pct=True, method='average')
+            df["Next_5_Diff_Strength"] = df["Next_5_Diff_Strength"].replace([float('inf'), float('-inf')], float('nan'))
+            df["Next_5_Diff_Display"] = df["Next_5_Diff_Strength"].round(2)
+        else:
+            df["Next_5_Diff_Strength"] = float('nan')
+            df["Next_5_Diff_Display"] = float('nan')
+    elif "Mean_Opp_Score" in df.columns:
+        # Fallback to old column if Dynamic_Fixture_Difficulty not present
+        valid_values = df["Mean_Opp_Score"].dropna()
+        if len(valid_values) > 0:
+            df["Next_5_Diff_Strength"] = df["Mean_Opp_Score"].rank(pct=True, method='average')
+            df["Next_5_Diff_Strength"] = df["Next_5_Diff_Strength"].replace([float('inf'), float('-inf')], float('nan'))
+            df["Next_5_Diff_Display"] = df["Next_5_Diff_Strength"].round(2)
+        else:
+            df["Next_5_Diff_Strength"] = float('nan')
+            df["Next_5_Diff_Display"] = float('nan')
     
-    # Last 5 Minutes / 450 (cap at 1) - display as percentage
+    # Last 5 Minutes - percentile ranking (more minutes = higher percentile)
     if "Last_5_Mins_Played_Running_Sum" in df.columns:
-        df["L5_Mins_Strength"] = (df["Last_5_Mins_Played_Running_Sum"] / 450).clip(upper=1.0)
-        df["L5_Mins_Strength"] = df["L5_Mins_Strength"].replace([float('inf'), float('-inf')], float('nan'))
-        # Display as percentage (0-100)
-        df["L5_Mins_Display"] = (df["L5_Mins_Strength"] * 100).round(0)
+        valid_values = df["Last_5_Mins_Played_Running_Sum"].dropna()
+        if len(valid_values) > 0:
+            df["L5_Mins_Strength"] = df["Last_5_Mins_Played_Running_Sum"].rank(pct=True, method='average')
+            df["L5_Mins_Strength"] = df["L5_Mins_Strength"].replace([float('inf'), float('-inf')], float('nan'))
+            # Display as percentage (0-100) of percentile
+            df["L5_Mins_Display"] = (df["L5_Mins_Strength"] * 100).round(0)
+        else:
+            df["L5_Mins_Strength"] = float('nan')
+            df["L5_Mins_Display"] = float('nan')
     
-    # Last 15 Minutes / 1350 (cap at 1) - display as percentage
+    # Last 15 Minutes - percentile ranking (more minutes = higher percentile)
     if "Last_15_Mins_Played_Running_Sum" in df.columns:
-        df["L15_Mins_Strength"] = (df["Last_15_Mins_Played_Running_Sum"] / 1350).clip(upper=1.0)
-        df["L15_Mins_Strength"] = df["L15_Mins_Strength"].replace([float('inf'), float('-inf')], float('nan'))
-        # Display as percentage (0-100)
-        df["L15_Mins_Display"] = (df["L15_Mins_Strength"] * 100).round(0)
+        valid_values = df["Last_15_Mins_Played_Running_Sum"].dropna()
+        if len(valid_values) > 0:
+            df["L15_Mins_Strength"] = df["Last_15_Mins_Played_Running_Sum"].rank(pct=True, method='average')
+            df["L15_Mins_Strength"] = df["L15_Mins_Strength"].replace([float('inf'), float('-inf')], float('nan'))
+            # Display as percentage (0-100) of percentile
+            df["L15_Mins_Display"] = (df["L15_Mins_Strength"] * 100).round(0)
+        else:
+            df["L15_Mins_Strength"] = float('nan')
+            df["L15_Mins_Display"] = float('nan')
     
     return df
 
