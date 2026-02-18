@@ -16,7 +16,7 @@ from src.config import (
 from src.data import load_and_prepare_data, calculate_gameweeks, prepare_ranking_display
 from src.pivots import create_pivot_tables, prepare_grid_dataframe
 from src.grid import create_cell_style_js, configure_grid
-from src.player_data import load_player_data, normalize_strength_metrics, filter_players_by_gameweeks, calculate_soi
+from src.player_data import load_player_data, normalize_strength_metrics, filter_players_by_gameweeks, calculate_soi, calculate_dynamic_fixture_difficulty
 from src.player_grid import create_strength_cell_style_js, configure_player_grid, prepare_player_grid_data
 from src.matchup_cohesion import (
     find_best_matchup_cohesions,
@@ -29,6 +29,17 @@ def main():
     # Header section with better formatting
     st.markdown("# ⚽ Opponent Difficulty Dashboard")
     st.markdown("### Analyze fixture difficulty across competitions and gameweeks")
+    
+    # Get last updated timestamp from data file
+    import os
+    from datetime import datetime
+    try:
+        data_mtime = os.path.getmtime(DATA_PATH)
+        last_updated = datetime.fromtimestamp(data_mtime).strftime("%B %d, %Y at %I:%M %p")
+        st.markdown(f"*Last Updated: {last_updated}*")
+    except:
+        pass
+    
     st.markdown("<hr>", unsafe_allow_html=True)
 
     # Load and prepare fixture data
@@ -47,7 +58,7 @@ def main():
     # Load player data
     try:
         player_df = load_player_data(PLAYER_DATA_PATH)
-        player_df = normalize_strength_metrics(player_df)
+        # Don't normalize yet - will do it after filtering
     except FileNotFoundError:
         st.warning(f"⚠️ Player data file not found at: {PLAYER_DATA_PATH}")
         st.info("💡 Player strength analysis will be unavailable.")
@@ -234,22 +245,6 @@ def main():
     
     # Get selected rows
     selected_rows = grid_response['selected_rows']
-
-    # Export section for fixtures
-#    st.markdown("---")
-    
-#    st.markdown("### 📥 Export Fixture Data")
-#    st.markdown("Download the fixture difficulty view as a CSV file.")
-    
-#    export_df = grid_df[["Rank", "Name"] + gw_columns + ["Avg"]]
-    
-#    st.download_button(
-#        "📊 Download Fixture CSV",
-#        export_df.to_csv(index=False).encode(),
-#        "opponent_difficulty.csv",
-#        "text/csv",
-#        help="Download the filtered fixture data as CSV"
-#    )
     
     # ============================================================
     # PLAYER STRENGTH DASHBOARD (SECOND DASHBOARD)
@@ -276,6 +271,18 @@ def main():
             selected_teams = selected_rows['Name'].tolist()
             st.info(f"🎯 Showing players from {len(selected_teams)} selected team(s)")
             players_filtered = players_filtered[players_filtered['Club'].isin(selected_teams)]
+        
+        # Calculate dynamic fixture difficulty based on team fixture data and selected gameweeks
+        players_filtered = calculate_dynamic_fixture_difficulty(
+            players_filtered,
+            df,
+            selected_gameweeks,
+            selected_competitions,
+            metric
+        )
+        
+        # Normalize strength metrics based on filtered player pool (percentile within filters)
+        players_filtered = normalize_strength_metrics(players_filtered)
         
         # Calculate SOI with user-defined weights
         players_filtered = calculate_soi(players_filtered, soi_weights)
@@ -325,36 +332,6 @@ def main():
                 update_mode="NO_UPDATE",
                 fit_columns_on_grid_load=False
             )
-            
-            # Export section for players
-            #st.markdown("---")
-            
-            #st.markdown("### 📥 Export Player Data")
-            #st.markdown("Download the player strength analysis as a CSV file.")
-            
-            #player_export_df = players_filtered[[
-            #    "displayName", "Club", "Position",
-            #    "L5_Form_Display", "L15_Form_Display",
-            #    "Next_5_Diff_Display",
-            #    "L5_Mins_Display", "L15_Mins_Display",
-            #    "SOI_Score"
-            #]].copy()
-            
-            #player_export_df.columns = [
-            #    "Player", "Club", "Position",
-            #    "L5 Form", "L15 Form",
-            #    "Next 5 Diff",
-            #    "L5 Minutes", "L15 Minutes",
-            #    "SOI"
-            #]
-            
-            #st.download_button(
-            #    "📊 Download Player CSV",
-            #    player_export_df.to_csv(index=False).encode(),
-            #    "player_strength.csv",
-            #    "text/csv",
-            #    help="Download the player strength data as CSV"
-            #)
     
     # ============================================================
     # MATCHUP COHESION DASHBOARD (THIRD DASHBOARD)
@@ -438,8 +415,7 @@ def main():
                 
                 **Cohesion Score Formula:**
                 ```
-                Score = (Both Play % × 20%) + (Both Home % × 40%) + (Difficulty Score × 40%)
-                where Difficulty Score = Avg Difficulty / 70
+                Score = (Both Play % × 20%) + (Both Home % × 40%) + (Fixture Difficulty Percentile × 40%)
                 ```
                 
                 **Column Definitions:**
@@ -448,18 +424,23 @@ def main():
                 - **Position**: Position(s) being analyzed
                 - **Both Play %**: Percentage of selected gameweeks where both teams have a match
                 - **Both Home %**: Percentage of PRIMARY team's home games where partner is also home
-                - **Avg Difficulty**: Combined average difficulty score (lower is easier)
+                - **Fixture Difficulty Percentile**: Percentile rank of combined difficulty across ALL teams in filters (higher = easier fixtures)
                 - **Cohesion Score**: Overall matchup quality (0-100, higher is better)
                 
                 **Weights Explanation:**
                 - Both Home % gets the most weight (40%) because having coverage for your home games is crucial
-                - Avg Difficulty also weighted heavily (40%) for ease of fixtures
+                - Fixture Difficulty Percentile also weighted heavily (40%) - compares against all teams in your filters
                 - Both Play % weighted lower (20%) - overlap is less important than quality
                 
                 **Both Home % Explanation:**
                 If your selected team has 2 home games in the upcoming gameweeks, and a partner team 
                 also has home games in both those same gameweeks, they would show 100% Both Home %.
                 This helps you find teams that give you options when your primary team plays at home.
+                
+                **Fixture Difficulty Percentile Explanation:**
+                This percentile is calculated across ALL teams in your sidebar filters (Sorare Competition, 
+                Competitions, and Gameweeks), not just the teams shown in the cohesion table. A 75th percentile 
+                means the team pair has easier fixtures than 75% of all possible team combinations.
                 
                 **Filters:**
                 - **Min % Both Teams Play**: Only shows teams that play together in at least this % of gameweeks
@@ -470,6 +451,7 @@ def main():
             with st.spinner("Calculating matchup cohesion..."):
                 cohesion_df = find_best_matchup_cohesions(
                     df_cohesion,
+                    df_cohesion,  # Pass full cohesion dataframe for percentile calculation
                     primary_team,
                     selected_gameweeks,
                     metric,
@@ -480,7 +462,45 @@ def main():
             
             if cohesion_df.empty:
                 st.info(f"ℹ️ No teams found matching the criteria (min {min_both_play}% both play). Try lowering the minimum threshold.")
-            else:              
+            else:
+                # Display summary metrics in cards
+                st.markdown("### 📊 Summary Metrics")
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    best_score = cohesion_df["cohesion_score"].max()
+                    st.metric(
+                        "Best Cohesion Score", 
+                        f"{best_score:.1f}",
+                        help="Highest cohesion score found"
+                    )
+                
+                with col2:
+                    avg_both_home = cohesion_df["both_home_pct"].mean()
+                    st.metric(
+                        "Avg Both Home %", 
+                        f"{avg_both_home:.0f}%",
+                        help="Average % of primary team's home games where partner is also home"
+                    )
+                
+                with col3:
+                    avg_both_play = cohesion_df["both_play_pct"].mean()
+                    st.metric(
+                        "Avg Both Play %", 
+                        f"{avg_both_play:.0f}%",
+                        help="Average percentage of gameweeks where both teams play"
+                    )
+                
+                with col4:
+                    avg_percentile = cohesion_df["difficulty_percentile"].mean()
+                    st.metric(
+                        "Avg Difficulty Percentile", 
+                        f"{avg_percentile:.0f}%",
+                        help="Average fixture difficulty percentile (higher is easier)"
+                    )
+                
+                st.markdown("---")
+                
                 # Prepare display dataframe
                 display_df = prepare_cohesion_display_df(cohesion_df)
                 
@@ -493,7 +513,7 @@ def main():
                     st.markdown(f"*Filtered to teams that play together in ≥{min_both_play}% of gameweeks*")
                 
                 # Display the dataframe with column configuration for better visualization
-                st.dataframe(
+                cohesion_response = st.dataframe(
                     display_df,
                     column_config={
                         "Rank": st.column_config.NumberColumn(
@@ -528,11 +548,13 @@ def main():
                             max_value=100,
                             width="medium"
                         ),
-                        "Avg Difficulty": st.column_config.NumberColumn(
-                            "Avg Difficulty",
-                            help="Combined average difficulty (lower is easier)",
-                            format="%.1f",
-                            width="small"
+                        "Fixture Difficulty Percentile": st.column_config.ProgressColumn(
+                            "Fixture Difficulty Percentile",
+                            help="Percentile ranking of fixture difficulty (higher = easier)",
+                            format="%.1f%%",
+                            min_value=0,
+                            max_value=100,
+                            width="medium"
                         ),
                         "Cohesion Score": st.column_config.ProgressColumn(
                             "Cohesion Score",
@@ -545,22 +567,83 @@ def main():
                     },
                     hide_index=True,
                     use_container_width=True,
-                    height=500
+                    height=500,
+                    on_select="rerun",
+                    selection_mode="multi-row"
                 )
                 
-                # Export button
-                #st.markdown("---")
-                #st.markdown("### 📥 Export Data")
-                
-                #csv = display_df.to_csv(index=False).encode('utf-8')
-                
-                #st.download_button(
-                #    label="📊 Download Matchup Cohesion CSV",
-                #    data=csv,
-                #    file_name=f"matchup_cohesion_{primary_team}_{position_text.replace(', ', '_')}.csv",
-                #    mime="text/csv",
-                #    help="Download the complete matchup cohesion rankings"
-                #)
+                # SOI Filter based on selected teams
+                if player_df is not None and cohesion_response.selection.rows:
+                    selected_indices = cohesion_response.selection.rows
+                    selected_teams = display_df.iloc[selected_indices]["Team Match"].tolist()
+                    
+                    # Add primary team to the list
+                    all_selected_teams = [primary_team] + selected_teams
+                    
+                    st.markdown("---")
+                    st.markdown("## 👥 Sorare Opportunity Index - Filtered by Selected Teams")
+                    st.markdown(f"### Players from: {', '.join(all_selected_teams)}")
+                    
+                    # Filter players by selected teams and cohesion positions  
+                    players_filtered = filter_players_by_gameweeks(
+                        player_df,
+                        df,
+                        selected_gameweeks,
+                        selected_competitions,
+                        cohesion_positions[0] if len(cohesion_positions) == 1 else position  # Use cohesion position if single, else sidebar
+                    )
+                    
+                    # Filter by selected teams
+                    players_filtered = players_filtered[players_filtered['Club'].isin(all_selected_teams)]
+                    
+                    # Calculate dynamic fixture difficulty based on team fixture data and selected gameweeks
+                    players_filtered = calculate_dynamic_fixture_difficulty(
+                        players_filtered,
+                        df,
+                        selected_gameweeks,
+                        selected_competitions,
+                        metric
+                    )
+                    
+                    # Normalize strength metrics based on filtered player pool (percentile within filters)
+                    players_filtered = normalize_strength_metrics(players_filtered)
+                    
+                    # Calculate SOI with user-defined weights
+                    players_filtered = calculate_soi(players_filtered, soi_weights)
+                    
+                    if players_filtered.empty:
+                        st.info("ℹ️ No players found for the selected teams and filters.")
+                    else:
+                        # Prepare player grid
+                        player_grid_df, strength_cols = prepare_player_grid_data(players_filtered)
+                        
+                        # Create strength cell styling
+                        strength_cell_js = create_strength_cell_style_js(
+                            STRENGTH_CENTER,
+                            STRENGTH_COLORS,
+                            STRENGTH_OPACITY
+                        )
+                        
+                        # Configure player grid
+                        player_grid_options = configure_player_grid(
+                            player_grid_df,
+                            strength_cols,
+                            strength_cell_js,
+                            STRENGTH_COLORS,
+                            STRENGTH_OPACITY
+                        )
+                        
+                        # Display player grid
+                        AgGrid(
+                            player_grid_df,
+                            gridOptions=player_grid_options,
+                            height=500,
+                            allow_unsafe_jscode=True,
+                            theme="streamlit",
+                            update_mode="NO_UPDATE",
+                            fit_columns_on_grid_load=False
+                        )
+
     
     # Footer with color legend - stacked on mobile
     st.markdown("---")
