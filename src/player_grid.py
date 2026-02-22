@@ -284,8 +284,8 @@ def prepare_player_grid_data(df):
     strength_columns = []
 
     metrics = [
-        ("L5_Form_Display", "L5 Form", "Last 5 games average score / 70"),
-        ("L15_Form_Display", "L15 Form", "Last 15 games average score / 70"),
+        ("L5_Form_Display", "L5 Form", "Avg score over last 5 games"),
+        ("L15_Form_Display", "L15 Form", "Avg score over last 15 games"),
         ("Next_5_Diff_Display", "Next 5 Fixtures", "Upcoming fixture difficulty"),
         ("L5_Mins_Display", "L5 Mins", "Last 5 games minutes / 450"),
         ("L15_Mins_Display", "L15 Mins", "Last 15 games minutes / 1350"),
