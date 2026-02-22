@@ -30,12 +30,11 @@ def main():
     st.markdown("# ⚽ Opponent Difficulty Dashboard")
     st.markdown("### Analyze fixture difficulty across competitions and gameweeks")
     
-    # Get last updated timestamp from data file
-    import os
-    from datetime import datetime
+    # Get last updated timestamp from the last_updated field in the data
     try:
-        data_mtime = os.path.getmtime(DATA_PATH)
-        last_updated = datetime.fromtimestamp(data_mtime).strftime("%B %d, %Y at %I:%M %p")
+        _ts_df = pd.read_csv(DATA_PATH, usecols=["last_updated"])
+        _ts_raw = pd.to_datetime(_ts_df["last_updated"].iloc[0], utc=True)
+        last_updated = _ts_raw.strftime("%B %d, %Y at %I:%M %p UTC")
         st.markdown(f"*Last Updated: {last_updated}*")
     except:
         pass
@@ -463,43 +462,7 @@ def main():
             if cohesion_df.empty:
                 st.info(f"ℹ️ No teams found matching the criteria (min {min_both_play}% both play). Try lowering the minimum threshold.")
             else:
-                # Display summary metrics in cards
-                st.markdown("### 📊 Summary Metrics")
-                col1, col2, col3, col4 = st.columns(4)
-                
-                with col1:
-                    best_score = cohesion_df["cohesion_score"].max()
-                    st.metric(
-                        "Best Cohesion Score", 
-                        f"{best_score:.1f}",
-                        help="Highest cohesion score found"
-                    )
-                
-                with col2:
-                    avg_both_home = cohesion_df["both_home_pct"].mean()
-                    st.metric(
-                        "Avg Both Home %", 
-                        f"{avg_both_home:.0f}%",
-                        help="Average % of primary team's home games where partner is also home"
-                    )
-                
-                with col3:
-                    avg_both_play = cohesion_df["both_play_pct"].mean()
-                    st.metric(
-                        "Avg Both Play %", 
-                        f"{avg_both_play:.0f}%",
-                        help="Average percentage of gameweeks where both teams play"
-                    )
-                
-                with col4:
-                    avg_percentile = cohesion_df["difficulty_percentile"].mean()
-                    st.metric(
-                        "Avg Difficulty Percentile", 
-                        f"{avg_percentile:.0f}%",
-                        help="Average fixture difficulty percentile (higher is easier)"
-                    )
-                
-                st.markdown("---")
+               
                 
                 # Prepare display dataframe
                 display_df = prepare_cohesion_display_df(cohesion_df)
