@@ -61,9 +61,10 @@ def calculate_cohesion_score(df, df_full_cohesion, team1, team2, gameweeks, metr
     
     # Calculate overlap
     overlap_gws = team1_gws & team2_gws
-    
-    # Column 4: % of selected gameweeks where both teams play
-    both_play_pct = (len(overlap_gws) / len(gameweeks) * 100) if gameweeks else 0
+    union_gws = team1_gws | team2_gws
+
+    # Column 4: % of gameweeks where either team plays that both teams play
+    both_play_pct = (len(overlap_gws) / len(union_gws) * 100) if union_gws else 0
     
     # Column 5: % of PRIMARY TEAM'S home games where partner is also home
     # Get gameweeks where team1 (primary) is home
@@ -86,19 +87,13 @@ def calculate_cohesion_score(df, df_full_cohesion, team1, team2, gameweeks, metr
     team2_avg = team2_data[metric].mean()
     combined_avg = (team1_avg + team2_avg) / 2
     
-    # Calculate Fixture Difficulty Percentile using full cohesion dataframe
-    # Use all teams across all filters (not just selected teams)
-    all_team_avgs = df_full_cohesion.groupby("Name")[metric].mean()
-    
-    # Calculate percentile rank (lower difficulty = higher percentile = better)
-    # Invert so lower difficulty scores get higher percentiles
-    percentile = (all_team_avgs > combined_avg).sum() / len(all_team_avgs) * 100
-    
-    # Calculate cohesion score with percentile-based difficulty
+    # Calculate cohesion score using combined average difficulty directly
+    # Lower avg difficulty = better, so invert for scoring (100 - avg, capped to 0-100 range)
+    difficulty_score = max(0, min(100, 100 - combined_avg))
     cohesion_score = (
         both_play_pct * 0.20 +
         both_home_pct * 0.40 +
-        percentile * 0.40
+        difficulty_score * 0.40
     )
     
     # Get position string for display
@@ -111,7 +106,7 @@ def calculate_cohesion_score(df, df_full_cohesion, team1, team2, gameweeks, metr
         "both_play_pct": both_play_pct,
         "both_home_pct": both_home_pct,
         "combined_avg_difficulty": combined_avg,
-        "difficulty_percentile": percentile,
+        "difficulty_percentile": combined_avg,
         "cohesion_score": cohesion_score,
         "overlap_count": len(overlap_gws),
         "both_home_count": both_home_count,
@@ -264,14 +259,14 @@ def prepare_cohesion_display_df(cohesion_df):
         "Position",
         "Both Play %",
         "Both Home %",
-        "Fixture Difficulty Percentile",
+        "Avg Difficulty",
         "Cohesion Score"
     ]
     
     # Round numeric columns
     display_df["Both Play %"] = display_df["Both Play %"].round(1)
     display_df["Both Home %"] = display_df["Both Home %"].round(1)
-    display_df["Fixture Difficulty Percentile"] = display_df["Fixture Difficulty Percentile"].round(1)
+    display_df["Avg Difficulty"] = display_df["Avg Difficulty"].round(1)
     display_df["Cohesion Score"] = display_df["Cohesion Score"].round(1)
     
     return display_df
