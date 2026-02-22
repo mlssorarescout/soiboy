@@ -80,27 +80,15 @@ def normalize_strength_metrics(df):
     """
     df = df.copy()
     
-    # Last 5 Score Average - percentile ranking (higher score = higher percentile)
+    # Last 5 Score Average - score / 70, capped at 1
     if "Last_5_Score_Running_Avg" in df.columns:
-        valid_values = df["Last_5_Score_Running_Avg"].dropna()
-        if len(valid_values) > 0:
-            df["L5_Form_Strength"] = df["Last_5_Score_Running_Avg"].rank(pct=True, method='average')
-            df["L5_Form_Strength"] = df["L5_Form_Strength"].replace([float('inf'), float('-inf')], float('nan'))
-            df["L5_Form_Display"] = df["L5_Form_Strength"].round(2)
-        else:
-            df["L5_Form_Strength"] = float('nan')
-            df["L5_Form_Display"] = float('nan')
+        df["L5_Form_Strength"] = (df["Last_5_Score_Running_Avg"] / 70).clip(upper=1)
+        df["L5_Form_Display"] = df["L5_Form_Strength"].round(2)
     
-    # Last 15 Score Average - percentile ranking (higher score = higher percentile)
+    # Last 15 Score Average - score / 70, capped at 1
     if "Last_15_Score_Running_Avg" in df.columns:
-        valid_values = df["Last_15_Score_Running_Avg"].dropna()
-        if len(valid_values) > 0:
-            df["L15_Form_Strength"] = df["Last_15_Score_Running_Avg"].rank(pct=True, method='average')
-            df["L15_Form_Strength"] = df["L15_Form_Strength"].replace([float('inf'), float('-inf')], float('nan'))
-            df["L15_Form_Display"] = df["L15_Form_Strength"].round(2)
-        else:
-            df["L15_Form_Strength"] = float('nan')
-            df["L15_Form_Display"] = float('nan')
+        df["L15_Form_Strength"] = (df["Last_15_Score_Running_Avg"] / 70).clip(upper=1)
+        df["L15_Form_Display"] = df["L15_Form_Strength"].round(2)
     
     # Dynamic Fixture Difficulty (from team fixture dashboard) or fallback to Mean_Opp_Score
     # Percentile ranking: higher difficulty = higher percentile = stronger (facing tougher opponents)
