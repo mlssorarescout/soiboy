@@ -462,8 +462,6 @@ def main():
             if cohesion_df.empty:
                 st.info(f"ℹ️ No teams found matching the criteria (min {min_both_play}% both play). Try lowering the minimum threshold.")
             else:
-               
-                
                 # Prepare display dataframe
                 display_df = prepare_cohesion_display_df(cohesion_df)
                 
@@ -511,12 +509,10 @@ def main():
                             max_value=100,
                             width="medium"
                         ),
-                        "Fixture Difficulty Percentile": st.column_config.ProgressColumn(
-                            "Fixture Difficulty Percentile",
-                            help="Percentile ranking of fixture difficulty (higher = easier)",
-                            format="%.1f%%",
-                            min_value=0,
-                            max_value=100,
+                        "Avg Difficulty": st.column_config.NumberColumn(
+                            "Avg Difficulty",
+                            help="Combined average fixture difficulty score for both teams (lower is easier)",
+                            format="%.1f",
                             width="medium"
                         ),
                         "Cohesion Score": st.column_config.ProgressColumn(
@@ -546,66 +542,70 @@ def main():
                     st.markdown("---")
                     st.markdown("## 👥 Sorare Opportunity Index - Filtered by Selected Teams")
                     st.markdown(f"### Players from: {', '.join(all_selected_teams)}")
-                    
-                    # Filter players by selected teams and cohesion positions  
-                    players_filtered = filter_players_by_gameweeks(
-                        player_df,
-                        df,
-                        selected_gameweeks,
-                        selected_competitions,
-                        cohesion_positions[0] if len(cohesion_positions) == 1 else position  # Use cohesion position if single, else sidebar
-                    )
-                    
-                    # Filter by selected teams
-                    players_filtered = players_filtered[players_filtered['Club'].isin(all_selected_teams)]
-                    
-                    # Calculate dynamic fixture difficulty based on team fixture data and selected gameweeks
-                    players_filtered = calculate_dynamic_fixture_difficulty(
-                        players_filtered,
-                        df,
-                        selected_gameweeks,
-                        selected_competitions,
-                        metric
-                    )
-                    
-                    # Normalize strength metrics based on filtered player pool (percentile within filters)
-                    players_filtered = normalize_strength_metrics(players_filtered)
-                    
-                    # Calculate SOI with user-defined weights
-                    players_filtered = calculate_soi(players_filtered, soi_weights)
-                    
-                    if players_filtered.empty:
-                        st.info("ℹ️ No players found for the selected teams and filters.")
-                    else:
-                        # Prepare player grid
-                        player_grid_df, strength_cols = prepare_player_grid_data(players_filtered)
-                        
-                        # Create strength cell styling
-                        strength_cell_js = create_strength_cell_style_js(
-                            STRENGTH_CENTER,
-                            STRENGTH_COLORS,
-                            STRENGTH_OPACITY
+
+                    soi_col, fix_col = st.columns(2)
+
+                    # Left: SOI grid (combined, as original)
+                    with soi_col:
+                        pos_filter = cohesion_positions[0] if len(cohesion_positions) == 1 else position
+                        players_filtered = filter_players_by_gameweeks(
+                            player_df, df, selected_gameweeks, selected_competitions, pos_filter
                         )
-                        
-                        # Configure player grid
-                        player_grid_options = configure_player_grid(
-                            player_grid_df,
-                            strength_cols,
-                            strength_cell_js,
-                            STRENGTH_COLORS,
-                            STRENGTH_OPACITY
+                        players_filtered = players_filtered[players_filtered['Club'].isin(all_selected_teams)]
+                        players_filtered = calculate_dynamic_fixture_difficulty(
+                            players_filtered, df, selected_gameweeks, selected_competitions, metric
                         )
-                        
-                        # Display player grid
-                        AgGrid(
-                            player_grid_df,
-                            gridOptions=player_grid_options,
-                            height=500,
-                            allow_unsafe_jscode=True,
-                            theme="streamlit",
-                            update_mode="NO_UPDATE",
-                            fit_columns_on_grid_load=False
-                        )
+                        players_filtered = normalize_strength_metrics(players_filtered)
+                        players_filtered = calculate_soi(players_filtered, soi_weights)
+
+                        if players_filtered.empty:
+                            st.info("ℹ️ No players found for the selected teams and filters.")
+                        else:
+                            player_grid_df, strength_cols = prepare_player_grid_data(players_filtered)
+                            strength_cell_js = create_strength_cell_style_js(STRENGTH_CENTER, STRENGTH_COLORS, STRENGTH_OPACITY)
+                            player_grid_options = configure_player_grid(
+                                player_grid_df, strength_cols, strength_cell_js, STRENGTH_COLORS, STRENGTH_OPACITY
+                            )
+                            AgGrid(
+                                player_grid_df,
+                                gridOptions=player_grid_options,
+                                height=500,
+                                allow_unsafe_jscode=True,
+                                theme="streamlit",
+                                update_mode="NO_UPDATE",
+                                fit_columns_on_grid_load=False
+                            )
+
+                    # Right: Fixture Difficulty heatmap filtered to selected teams, ordered primary first
+                    with fix_col:
+                        st.markdown("#### 📊 Fixture Difficulty")
+                        # Filter the main df to selected teams and gameweeks, put primary team first
+                        fix_df = df_filtered[df_filtered["Name"].isin(all_selected_teams)].copy()
+                        # Assign sort order so primary team appears first
+                        team_order = {t: i for i, t in enumerate(all_selected_teams)}
+                        fix_df["Rank_Sort"] = fix_df["Name"].map(team_order)
+                        fix_df = fix_df[fix_df["Game Week"].isin(selected_gameweeks)]
+                        if fix_df.empty:
+                            st.info("ℹ️ No fixture data for selected teams.")
+                        else:
+                            fix_value_pivot, fix_label_pivot, fix_opponent_pivot = create_pivot_tables(fix_df, metric)
+                            fix_gameweeks = sorted(fix_df["Game Week"].unique())
+                            fix_grid_df, fix_gw_cols = prepare_grid_dataframe(
+                                fix_value_pivot, fix_label_pivot, fix_opponent_pivot,
+                                fix_df, fix_gameweeks
+                            )
+                            fix_cell_js = create_cell_style_js(DIFFICULTY_CENTER, DIFFICULTY_COLORS, COLOR_OPACITY)
+                            fix_grid_options = configure_grid(fix_grid_df, fix_gw_cols, fix_cell_js)
+                            AgGrid(
+                                fix_grid_df,
+                                gridOptions=fix_grid_options,
+                                height=500,
+                                allow_unsafe_jscode=True,
+                                theme="streamlit",
+                                update_mode="NO_UPDATE",
+                                fit_columns_on_grid_load=False,
+                                enable_enterprise_modules=False
+                            )
 
     
     # Footer with color legend - stacked on mobile
