@@ -27,6 +27,10 @@ def load_player_data(file_path):
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
     
+    # Ensure season_start_year is numeric
+    if "season_start_year" in df.columns:
+        df["season_start_year"] = pd.to_numeric(df["season_start_year"], errors="coerce")
+    
     return df
 
 
