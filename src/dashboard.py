@@ -255,7 +255,23 @@ def main():
         st.markdown("## 👥 Sorare Opportunity Index")
         st.markdown("### Players from teams playing in selected gameweeks")
         st.markdown("<hr>", unsafe_allow_html=True)
-        
+
+        # Highest Card Year filter (multi-select, SOI-specific)
+        if "season_start_year" in player_df.columns:
+            available_years = sorted(
+                [int(y) for y in player_df["season_start_year"].dropna().unique()],
+                reverse=True
+            )
+            selected_card_years = st.multiselect(
+                "🃏 Highest Card Year",
+                options=available_years,
+                default=available_years,
+                help="Filter players by the season start year of their highest-rarity card",
+                key="soi_card_year_filter"
+            )
+        else:
+            selected_card_years = None
+
         # Filter players by selected gameweeks and filters
         players_filtered = filter_players_by_gameweeks(
             player_df,
@@ -264,6 +280,14 @@ def main():
             selected_competitions,
             position
         )
+
+        # Apply Highest Card Year filter
+        if selected_card_years is not None and "season_start_year" in players_filtered.columns:
+            players_filtered = players_filtered[
+                players_filtered["season_start_year"].apply(
+                    lambda y: int(y) in selected_card_years if pd.notna(y) else False
+                )
+            ]
         
         # Further filter by selected teams if any rows are selected in the fixture grid
         if selected_rows is not None and len(selected_rows) > 0:
