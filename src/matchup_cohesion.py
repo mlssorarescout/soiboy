@@ -68,15 +68,17 @@ def calculate_cohesion_score(df, df_full_cohesion, team1, team2, gameweeks, metr
     
     # Column 5: % of PRIMARY TEAM'S home games where partner is also home
     # Get gameweeks where team1 (primary) is home
-    team1_home_gws = set(team1_data[team1_data["HA"] == "H"]["Game Week"].unique())
-    
-    # Count how many of team1's home games team2 is also home
+    # Deduplicate to one row per team per gameweek for location check
+    team1_home_gws = set(
+        team1_data.drop_duplicates(subset=["Game Week", "HA"])
+                  .loc[lambda x: x["HA"] == "H", "Game Week"]
+                  .unique()
+    )
+
     both_home_count = 0
     for gw in team1_home_gws:
-        team2_gw_data = team2_data[team2_data["Game Week"] == gw]
-        
-        # Check if team2 has a home match in this gameweek
-        if not team2_gw_data.empty and (team2_gw_data["HA"] == "H").any():
+        team2_gw_locations = team2_data[team2_data["Game Week"] == gw].drop_duplicates(subset=["HA"])
+        if not team2_gw_locations.empty and (team2_gw_locations["HA"] == "H").any():
             both_home_count += 1
     
     # Calculate percentage based on primary team's home games
