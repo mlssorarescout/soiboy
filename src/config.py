@@ -64,7 +64,9 @@ SORARE_COMPETITION_MAPPING = {
     "J1 100 Year Vision League": "J1 100 Year Vision League",
     "UEFA Conference League": "UEFA",
     "Russian Premier League": "Contender",
-    "Chinese Super League": "Contender"
+    "Chinese Super League": "Contender",
+    "Liga Pro": "Contender",
+    "CONMEBOL Sudamericana": "CONMEBOL Sudamericana"
 }
 
 # Color scheme for difficulty visualization
