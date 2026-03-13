@@ -66,7 +66,8 @@ SORARE_COMPETITION_MAPPING = {
     "Russian Premier League": "Contender",
     "Chinese Super League": "Contender",
     "Liga Pro": "Contender",
-    "CONMEBOL Sudamericana": "CONMEBOL Sudamericana"
+    "CONMEBOL Sudamericana": "CONMEBOL Sudamericana",
+    "Eliteserien": "Contender"
 }
 
 # Color scheme for difficulty visualization
