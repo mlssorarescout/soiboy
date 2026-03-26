@@ -26,20 +26,34 @@ from src.matchup_cohesion import (
 
 
 def main():
-    # Header section with better formatting
-    st.markdown("# ⚽ Opponent Difficulty Dashboard")
-    st.markdown("### Analyze fixture difficulty across competitions and gameweeks")
-    
-    # Get last updated timestamp from the last_updated field in the data
+    # Get last updated timestamp
+    last_updated = None
     try:
         _ts_df = pd.read_csv(DATA_PATH, usecols=["last_updated"])
         _ts_raw = pd.to_datetime(_ts_df["last_updated"].iloc[0], utc=True)
-        last_updated = _ts_raw.strftime("%B %d, %Y at %I:%M %p UTC")
-        st.markdown(f"*Last Updated: {last_updated}*")
+        last_updated = _ts_raw.strftime("%b %d, %Y · %I:%M %p UTC")
     except:
         pass
-    
-    st.markdown("<hr>", unsafe_allow_html=True)
+
+    updated_html = (
+        f'<div class="header-updated">'
+        f'<span class="header-updated-label">Updated</span>'
+        f'<span class="header-updated-value">{last_updated}</span>'
+        f'</div>'
+    ) if last_updated else ''
+
+    st.markdown(f"""
+    <div class="app-header">
+        <div class="app-header-brand">
+            <span class="app-brand-icon">⚽</span>
+            <div>
+                <div class="app-brand-name">Soiboy</div>
+                <div class="app-brand-tagline">Sorare Fixture Intelligence</div>
+            </div>
+        </div>
+        {updated_html}
+    </div>
+    """, unsafe_allow_html=True)
 
     # Load and prepare fixture data
     try:
@@ -66,8 +80,14 @@ def main():
         st.warning(f"⚠️ Error loading player data: {str(e)}")
         player_df = None
 
-    # Sidebar filters with icons
-    st.sidebar.markdown("## 🎯 Filters")
+    # Sidebar brand + filters
+    st.sidebar.markdown("""
+    <div class="sidebar-header">
+        <div class="sidebar-header-title">⚽ Soiboy</div>
+        <div class="sidebar-header-sub">Fixture Intelligence</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.sidebar.markdown("## Filters")
 
     # Sorare Competition filter (first level - single select)
     sorare_competitions = sorted(df["Sorare_Competition"].dropna().unique())
@@ -77,7 +97,7 @@ def main():
     default_index = sorare_competitions.index(default_sorare)
     
     selected_sorare_comp = st.sidebar.selectbox(
-        "🏆 Sorare Competition",
+        "Sorare Competition",
         sorare_competitions,
         index=default_index,
         help="Filter by Sorare competition group"
@@ -89,7 +109,7 @@ def main():
     # Competition filter (multi-select, filtered by Sorare Competition)
     available_competitions = sorted(df_sorare_filtered["Competition_Display"].dropna().unique())
     selected_competitions = st.sidebar.multiselect(
-        "⚽ Competition",
+        "Competition",
         available_competitions,
         default=available_competitions,
         help="Select competitions to analyze"
@@ -104,7 +124,7 @@ def main():
     # Position filter
     positions = sorted(df_filtered["Position"].dropna().unique())
     position = st.sidebar.selectbox(
-        "👤 Position",
+        "Position",
         positions,
         help="Filter by player position"
     )
@@ -113,7 +133,7 @@ def main():
 
     # Metric selection
     metric = st.sidebar.radio(
-        "📊 Metric",
+        "Metric",
         ["Score_mean", "Score_median"],
         format_func=lambda x: x.replace("_", " ").title(),
         help="Choose between mean or median difficulty scores"
@@ -125,7 +145,7 @@ def main():
     st.sidebar.markdown("---")
     
     selected_gameweeks = st.sidebar.multiselect(
-        "📅 Gameweeks",
+        "Gameweeks",
         gameweeks,
         default=gameweeks,
         format_func=lambda x: f"GW {x}",
@@ -138,7 +158,7 @@ def main():
     
     # SOI Weight Configuration (only show if player data is available)
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### ⚖️ SOI Weights")
+    st.sidebar.markdown("### SOI Weights")
     
     soi_weights = {
         "l5_form": st.sidebar.slider(
@@ -227,7 +247,15 @@ def main():
 #    st.markdown("---")
 
     # Display the fixture grid
-    st.markdown("### 📊 Team Fixture Difficulty")
+    st.markdown("""
+    <div class="section-header">
+        <div class="section-bar"></div>
+        <div>
+            <div class="section-title">Team Fixture Difficulty</div>
+            <div class="section-subtitle">Color-coded opponent difficulty scores by gameweek</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     grid_height = 600  # Default height that works well on mobile
 
@@ -252,9 +280,15 @@ def main():
     if player_df is not None:
         st.markdown("---")
         
-        st.markdown("## 👥 Sorare Opportunity Index")
-        st.markdown("### Players from teams playing in selected gameweeks")
-        st.markdown("<hr>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="section-header">
+            <div class="section-bar section-bar-cyan"></div>
+            <div>
+                <div class="section-title">Sorare Opportunity Index</div>
+                <div class="section-subtitle">Player strength scores for teams in selected gameweeks</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         # Highest Card Year filter (multi-select, SOI-specific)
         if "season_start_year" in player_df.columns:
@@ -362,9 +396,15 @@ def main():
     
     st.markdown("---")
     
-    st.markdown("## 🔄 Matchup Cohesion Analysis")
-    st.markdown("### Find complementary team matchups")
-    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="section-header">
+        <div class="section-bar section-bar-emerald"></div>
+        <div>
+            <div class="section-title">Matchup Cohesion Analysis</div>
+            <div class="section-subtitle">Find complementary team pairings based on fixture alignment</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Standalone Position Filter for Cohesion (independent from sidebar)
     # Use df instead of df_filtered to get all positions, not just sidebar-filtered ones
@@ -491,8 +531,8 @@ def main():
                 
                 # Create styled dataframe with progress bars
                 position_text = ", ".join(cohesion_positions) if len(cohesion_positions) > 1 else cohesion_positions[0]
-                st.markdown("### 🎯 Matchup Cohesion Rankings")
-                st.markdown(f"*Showing top {len(display_df)} partners for **{primary_team}** at **{position_text}***")
+                st.markdown('<div class="sub-section-header">Cohesion Rankings</div>', unsafe_allow_html=True)
+                st.markdown(f"*Top {len(display_df)} partners for **{primary_team}** · {position_text}*")
                 
                 if min_both_play > 0:
                     st.markdown(f"*Filtered to teams that play together in ≥{min_both_play}% of gameweeks*")
@@ -564,8 +604,15 @@ def main():
                     all_selected_teams = [primary_team] + selected_teams
                     
                     st.markdown("---")
-                    st.markdown("## 👥 Sorare Opportunity Index - Filtered by Selected Teams")
-                    st.markdown(f"### Players from: {', '.join(all_selected_teams)}")
+                    st.markdown(f"""
+                    <div class="section-header">
+                        <div class="section-bar section-bar-cyan"></div>
+                        <div>
+                            <div class="section-title">Sorare Opportunity Index</div>
+                            <div class="section-subtitle">Filtered to: {', '.join(all_selected_teams)}</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
                     soi_col, fix_col = st.columns(2)
 
@@ -602,7 +649,7 @@ def main():
 
                     # Right: Fixture Difficulty heatmap filtered to selected teams, ordered primary first
                     with fix_col:
-                        st.markdown("#### 📊 Fixture Difficulty")
+                        st.markdown('<div class="sub-section-header">Fixture Difficulty</div>', unsafe_allow_html=True)
                         # Filter the main df to selected teams and gameweeks, put primary team first
                         fix_df = df_filtered[df_filtered["Name"].isin(all_selected_teams)].copy()
                         # Assign sort order so primary team appears first
@@ -632,34 +679,21 @@ def main():
                             )
 
     
-    # Footer with color legend - stacked on mobile
+    # Footer color legend
     st.markdown("---")
-    st.markdown("### 🎨 Color Legend")
-    
-    legend_col1, legend_col2, legend_col3 = st.columns(3)
-    
-    with legend_col1:
-        st.markdown(
-            '<div style="background-color: rgb(34, 197, 94); padding: 10px; '
-            'border-radius: 8px; text-align: center; color: white; font-weight: 600; '
-            'margin-bottom: 0.5rem;">'
-            'Strong/Easy</div>',
-            unsafe_allow_html=True
-        )
-    
-    with legend_col2:
-        st.markdown(
-            '<div style="background-color: rgb(255, 255, 255); padding: 10px; '
-            'border-radius: 8px; text-align: center; border: 1px solid #cbd5e1; '
-            'font-weight: 600; margin-bottom: 0.5rem;">Neutral</div>',
-            unsafe_allow_html=True
-        )
-    
-    with legend_col3:
-        st.markdown(
-            '<div style="background-color: rgb(239, 68, 68); padding: 10px; '
-            'border-radius: 8px; text-align: center; color: white; font-weight: 600; '
-            'margin-bottom: 0.5rem;">'
-            'Weak/Hard</div>',
-            unsafe_allow_html=True
-        )
+    st.markdown("""
+    <div class="legend-strip">
+        <div class="legend-item">
+            <div class="legend-swatch" style="background:rgb(34,197,94);"></div>
+            Strong / Easy
+        </div>
+        <div class="legend-item">
+            <div class="legend-swatch" style="background:#ffffff; border:1px solid #cbd5e1;"></div>
+            Neutral
+        </div>
+        <div class="legend-item">
+            <div class="legend-swatch" style="background:rgb(239,68,68);"></div>
+            Weak / Hard
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
