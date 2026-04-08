@@ -17,26 +17,33 @@ def create_pivot_tables(df, metric):
 
     pivot_index = ["Rank_Sort", "Name"]
 
-    # Create separate pivots for values, labels, and opponents
+    # Create separate pivots for values, labels, and opponents.
+    # Use aggregations that handle double gameweeks (multiple fixtures in same GW):
+    # - value: mean difficulty (used for cell color)
+    # - label: all fixture labels joined with " / "
+    # - opponent: all opponent names joined with " / "
+    def join_nonempty(series):
+        return " / ".join(v for v in series if v and v == v)
+
     value_pivot = df.pivot_table(
-        values=metric, 
-        index=pivot_index, 
-        columns="Game Week",  # Changed from "Gameweek"
-        aggfunc="first"
+        values=metric,
+        index=pivot_index,
+        columns="Game Week",
+        aggfunc="mean"
     )
-    
+
     label_pivot = df.pivot_table(
-        values="CellLabel", 
-        index=pivot_index, 
-        columns="Game Week",  # Changed from "Gameweek"
-        aggfunc="first"
+        values="CellLabel",
+        index=pivot_index,
+        columns="Game Week",
+        aggfunc=join_nonempty
     ).fillna("")
-    
+
     opponent_pivot = df.pivot_table(
-        values="Opponent", 
-        index=pivot_index, 
-        columns="Game Week",  # Changed from "Gameweek"
-        aggfunc="first"
+        values="Opponent",
+        index=pivot_index,
+        columns="Game Week",
+        aggfunc=join_nonempty
     ).fillna("")
 
     # Calculate row averages
