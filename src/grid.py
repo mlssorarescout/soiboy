@@ -25,6 +25,7 @@ def create_cell_style_js(center, color_scheme, opacity):
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            textAlign: "center",
             fontWeight: "500",
             fontSize: "clamp(0.7rem, 2vw, 0.95rem)"
         }};
@@ -96,18 +97,19 @@ def configure_grid(grid_df, gw_columns, cell_style_js):
         cellStyle={'fontWeight': '600', 'paddingLeft': '8px'}
     )
 
-    # Configure gameweek columns with mobile-friendly widths
+    # Configure gameweek columns — wider to accommodate double-GW cells
     for col in gw_columns + ["Avg"]:
         header_name = "Avg" if col == "Avg" else col
-        
+
         gb.configure_column(
             col,
             headerName=header_name,
             tooltipField=f"{col}__tip",
             cellStyle=cell_style_js,
-            width=90,
-            minWidth=70,
-            maxWidth=120,
+            width=130,
+            minWidth=90,
+            wrapText=True,
+            autoHeight=True,
             headerClass="ag-center-header"
         )
         gb.configure_column(f"{col}__val", hide=True)
@@ -117,7 +119,6 @@ def configure_grid(grid_df, gw_columns, cell_style_js):
     gb.configure_grid_options(
         tooltipShowDelay=0,
         animateRows=True,
-        rowHeight=40,
         headerHeight=45,
         suppressMenuHide=True,
         enableCellTextSelection=True,
