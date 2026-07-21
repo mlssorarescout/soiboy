@@ -29,26 +29,26 @@ COMPETITION_NAMES = {
 # Sorare Competition mapping
 # Maps competition names to Sorare competition groups
 SORARE_COMPETITION_MAPPING = {
-    "Austrian Bundesliga": "Challenger",
+    "Austrian Bundesliga": "Contender",
     "First Division A": "Jupiler Pro League",
     "UEFA Champions League": "UEFA",
     "UEFA Europa League": "UEFA",
     "HNL": "Contender",
-    "Superliga": "Challenger",
+    "Superliga": "Contender",
     "EPL": "EPL",
     "Championship": "Contender",
     "Ligue 1": "Ligue 1",
     "Ligue 2": "Contender",
     "Bundesliga": "Bundesliga",
     "2. Bundesliga": "Contender",
-    "Serie A": "Challenger",
+    "Serie A": "Serie A",
     "Serie B": "Contender",
     "Eredivisie": "Eredivisie",
-    "Primeira Liga": "Challenger",
-    "Premiership": "Challenger",
+    "Primeira Liga": "Primeira Liga",
+    "Premiership": "Premiership",
     "LaLiga": "LaLiga",
     "Segunda División": "Contender",
-    "Süper Lig": "Challenger",
+    "Süper Lig": "Contender",
     "MLS": "MLS",
     "Concacaf Champions Cup": "Concacaf Champions Cup",
     "Liga Profesional Argentina": "Contender",
@@ -69,6 +69,11 @@ SORARE_COMPETITION_MAPPING = {
     "CONMEBOL Sudamericana": "CONMEBOL Sudamericana",
     "Eliteserien": "Contender"
 }
+
+# U23 filter for the Sorare Opportunity Index dashboard.
+# A player counts as "U23" if they were under 23 years old as of July 1, 2026,
+# i.e. born strictly after this cutoff date (23 years before the reference date).
+U23_BIRTHDATE_CUTOFF = "2003-07-01"
 
 # Color scheme for difficulty visualization
 # RGB tuples for easy, hard, and neutral difficulty ratings

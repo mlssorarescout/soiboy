@@ -306,6 +306,18 @@ def main():
         else:
             selected_card_years = None
 
+        # Age Group filter (SOI-specific): U23 = under 23 years old as of July 1, 2026
+        if "Is_U23" in player_df.columns:
+            age_filter = st.radio(
+                "Age Group",
+                ["All ages", "U23 only"],
+                horizontal=True,
+                help="U23 = players under 23 years old as of July 1, 2026 (by birthdate)",
+                key="soi_u23_filter"
+            )
+        else:
+            age_filter = "All ages"
+
         # Filter players by selected gameweeks and filters
         players_filtered = filter_players_by_gameweeks(
             player_df,
@@ -322,6 +334,10 @@ def main():
                     lambda y: int(y) in selected_card_years if pd.notna(y) else False
                 )
             ]
+
+        # Apply U23 filter
+        if age_filter == "U23 only" and "Is_U23" in players_filtered.columns:
+            players_filtered = players_filtered[players_filtered["Is_U23"]]
         
         # Further filter by selected teams if any rows are selected in the fixture grid
         if selected_rows is not None and len(selected_rows) > 0:
@@ -623,6 +639,8 @@ def main():
                             player_df, df, selected_gameweeks, selected_competitions, pos_filter
                         )
                         players_filtered = players_filtered[players_filtered['Club'].isin(all_selected_teams)]
+                        if age_filter == "U23 only" and "Is_U23" in players_filtered.columns:
+                            players_filtered = players_filtered[players_filtered["Is_U23"]]
                         players_filtered = calculate_dynamic_fixture_difficulty(
                             players_filtered, df, selected_gameweeks, selected_competitions, metric
                         )
