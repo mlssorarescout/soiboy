@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from src.config import STRENGTH_METRICS, DIFFICULTY_CENTER
+from src.config import STRENGTH_METRICS, DIFFICULTY_CENTER, U23_BIRTHDATE_CUTOFF
 
 
 @st.cache_data
@@ -30,6 +30,13 @@ def load_player_data(file_path):
     # Ensure season_start_year is numeric
     if "season_start_year" in df.columns:
         df["season_start_year"] = pd.to_numeric(df["season_start_year"], errors="coerce")
+    
+    # Flag U23 players: under 23 years old as of July 1, 2026 (born after the cutoff).
+    # Players with a missing/unparseable birthdate are treated as not U23.
+    if "birthDate" in df.columns:
+        birth = pd.to_datetime(df["birthDate"], errors="coerce", utc=True)
+        cutoff = pd.Timestamp(U23_BIRTHDATE_CUTOFF, tz="UTC")
+        df["Is_U23"] = birth > cutoff
     
     return df
 
