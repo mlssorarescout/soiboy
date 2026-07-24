@@ -3,6 +3,7 @@ import pandas as pd
 from st_aggrid import AgGrid
 
 from src.config import (
+    ALL_COMPETITIONS_LABEL,
     DATA_PATH,
     PLAYER_DATA_PATH,
     DIFFICULTY_CENTER,
@@ -90,21 +91,28 @@ def main():
     st.sidebar.markdown("## Filters")
 
     # Sorare Competition filter (first level - single select)
+    # "All" is prepended as a sentinel meaning "every Sorare competition group"
     sorare_competitions = sorted(df["Sorare_Competition"].dropna().unique())
+    sorare_comp_options = [ALL_COMPETITIONS_LABEL] + sorare_competitions
     
     # Set default to Contender if available, otherwise first option
-    default_sorare = "Contender" if "Contender" in sorare_competitions else sorare_competitions[0]
-    default_index = sorare_competitions.index(default_sorare)
+    default_sorare = "Contender" if "Contender" in sorare_comp_options else sorare_comp_options[0]
+    default_index = sorare_comp_options.index(default_sorare)
     
     selected_sorare_comp = st.sidebar.selectbox(
         "Sorare Competition",
-        sorare_competitions,
+        sorare_comp_options,
         index=default_index,
-        help="Filter by Sorare competition group"
+        help="Filter by Sorare competition group. Choose 'All' to span every group."
     )
     
     # Filter data by Sorare Competition
-    df_sorare_filtered = df[df["Sorare_Competition"] == selected_sorare_comp]
+    # For "All", keep every row that has a group assigned (rows with a missing
+    # group were never reachable through this filter before, so they stay excluded)
+    if selected_sorare_comp == ALL_COMPETITIONS_LABEL:
+        df_sorare_filtered = df[df["Sorare_Competition"].notna()]
+    else:
+        df_sorare_filtered = df[df["Sorare_Competition"] == selected_sorare_comp]
 
     # Competition filter (multi-select, filtered by Sorare Competition)
     available_competitions = sorted(df_sorare_filtered["Competition_Display"].dropna().unique())
@@ -424,7 +432,7 @@ def main():
     
     # Standalone Position Filter for Cohesion (independent from sidebar)
     # Use df instead of df_filtered to get all positions, not just sidebar-filtered ones
-    all_positions_cohesion = sorted(df[df["Sorare_Competition"] == selected_sorare_comp]["Position"].dropna().unique())
+    all_positions_cohesion = sorted(df_sorare_filtered["Position"].dropna().unique())
     
     col_filter1, col_filter2 = st.columns(2)
     
