@@ -26,6 +26,11 @@ COMPETITION_NAMES = {
     "premier-league-gb-eng": "EPL"
 }
 
+# Sentinel label used in the Sorare Competition selector to mean
+# "don't restrict to a single Sorare competition group".
+# Kept as a constant so the filter logic never string-matches "All" inline.
+ALL_COMPETITIONS_LABEL = "All"
+
 # Sorare Competition mapping
 # Maps competition names to Sorare competition groups
 SORARE_COMPETITION_MAPPING = {
