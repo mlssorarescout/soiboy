@@ -311,8 +311,15 @@ def main():
                 help="Filter players by the season start year of their highest-rarity card",
                 key="soi_card_year_filter"
             )
+            include_cardless = st.checkbox(
+                "Include players without a card season",
+                value=False,
+                help="Also show players whose highest-rarity card has no season year",
+                key="soi_include_cardless"
+            )
         else:
             selected_card_years = None
+            include_cardless = True
 
         # Age Group filter (SOI-specific): U23 = under 23 years old as of July 1, 2026
         if "Is_U23" in player_df.columns:
@@ -339,7 +346,8 @@ def main():
         if selected_card_years is not None and "season_start_year" in players_filtered.columns:
             players_filtered = players_filtered[
                 players_filtered["season_start_year"].apply(
-                    lambda y: int(y) in selected_card_years if pd.notna(y) else False
+                    lambda y: (int(y) in selected_card_years) if pd.notna(y)
+                    else include_cardless
                 )
             ]
 
