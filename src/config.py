@@ -41,7 +41,7 @@ SORARE_COMPETITION_MAPPING = {
     "HNL": "Contender",
     "Superliga": "Contender",
     "EPL": "EPL",
-    "Championship": "Contender",
+    "Championship": "English Championship",
     "Ligue 1": "Ligue 1",
     "Ligue 2": "Contender",
     "Bundesliga": "Bundesliga",
