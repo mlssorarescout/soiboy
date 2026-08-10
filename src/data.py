@@ -2,10 +2,10 @@ import pandas as pd
 import streamlit as st
 from src.config import COMPETITION_NAMES, SORARE_COMPETITION_MAPPING
 
-# Known correct reference point: Friday 2026-02-27 at 15:00 UTC = start of GW 54
+# Known correct reference point: Friday 2026-08-07 at 15:00 UTC = start of GW 3
 # This anchors the Fri/Tue alternating grid regardless of what data is loaded.
-_REFERENCE_BOUNDARY = pd.Timestamp("2026-07-17T15:00:00Z")
-_REFERENCE_GW = 92
+_REFERENCE_BOUNDARY = pd.Timestamp("2026-08-07T15:00:00Z")
+_REFERENCE_GW = 3
 _PERIODS = [pd.Timedelta(days=4), pd.Timedelta(days=3)]  # Fri→Tue, Tue→Fri
 
 
