@@ -46,7 +46,7 @@ SORARE_COMPETITION_MAPPING = {
     "Ligue 2": "Contender",
     "Bundesliga": "Bundesliga",
     "2. Bundesliga": "Contender",
-    "Serie A": "Serie A",
+    "Serie A": "Contender",
     "Serie B": "Contender",
     "Eredivisie": "Eredivisie",
     "Primeira Liga": "Primeira Liga",
@@ -72,7 +72,8 @@ SORARE_COMPETITION_MAPPING = {
     "Chinese Super League": "Contender",
     "Liga Pro": "Contender",
     "CONMEBOL Sudamericana": "CONMEBOL Sudamericana",
-    "Eliteserien": "Contender"
+    "Eliteserien": "Contender",
+    "J1 League": "J1 League"
 }
 
 # U23 filter for the Sorare Opportunity Index dashboard.
